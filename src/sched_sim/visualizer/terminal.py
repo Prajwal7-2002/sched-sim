@@ -10,7 +10,7 @@ console = Console()
 
 def print_single_run_summary(metrics: SimulationMetrics) -> None:
     """Print an executive summary panel for a single simulation run."""
-    table = Table(title=f"Execution Telemetry · {metrics.scheduler_name}", show_header=True, header_style="bold cyan")
+    table = Table(title=f"Execution Telemetry - {metrics.scheduler_name}", show_header=True, header_style="bold cyan")
     table.add_column("Category", style="dim", width=24)
     table.add_column("Metric", style="bold white", width=22)
     table.add_column("Value", style="green", width=20)
