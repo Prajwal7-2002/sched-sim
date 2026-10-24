@@ -187,25 +187,45 @@ def calibrate(
         data = json.load(f)
 
     # Read measured latency percentiles from servebench
-    measured_ttft = data.get("summary", {}).get("ttft_ms", {}).get("mean", 150.0)
-    measured_tpot = data.get("summary", {}).get("tpot_ms", {}).get("mean", 35.0)
+    measured_ttft = 150.0
+    measured_tpot = 35.0
 
-    console.print(f"[bold green]✓ Loaded servebench benchmark data from {servebench_result.name}[/bold green]")
-    console.print(f"  • Measured TTFT mean: {measured_ttft:.2f} ms")
-    console.print(f"  • Measured TPOT mean: {measured_tpot:.2f} ms")
+    if "levels" in data and len(data["levels"]) > 0:
+        lvl_summary = data["levels"][0].get("summary", {})
+        ttft_val = lvl_summary.get("ttft", {}).get("mean")
+        tpot_val = lvl_summary.get("tpot", {}).get("mean")
+        if ttft_val is not None:
+            measured_ttft = ttft_val * 1000.0 if ttft_val < 5.0 else ttft_val
+        if tpot_val is not None:
+            measured_tpot = tpot_val * 1000.0 if tpot_val < 5.0 else tpot_val
+    elif "summary" in data:
+        s = data["summary"]
+        ttft_val = s.get("ttft_ms", {}).get("mean") or s.get("ttft", {}).get("mean")
+        tpot_val = s.get("tpot_ms", {}).get("mean") or s.get("tpot", {}).get("mean")
+        if ttft_val is not None:
+            measured_ttft = ttft_val * 1000.0 if ttft_val < 5.0 else ttft_val
+        if tpot_val is not None:
+            measured_tpot = tpot_val * 1000.0 if tpot_val < 5.0 else tpot_val
+
+    console.print(f"[bold green][OK] Loaded servebench benchmark data from {servebench_result.name}[/bold green]")
+    console.print(f"  * Measured TTFT mean: {measured_ttft:.2f} ms")
+    console.print(f"  * Measured TPOT mean: {measured_tpot:.2f} ms")
 
     # Fit launch overhead and tensor core efficiency
     calibrated_launch = max(0.02, min(0.50, measured_tpot * 0.005))
     calibrated_efficiency = max(0.30, min(0.70, (150.0 / max(50.0, measured_ttft)) * 0.48))
 
-    calibrated_hw = HardwareProfile(
-        name=f"Calibrated ({servebench_result.stem})",
-        kernel_launch_overhead_ms=round(calibrated_launch, 3),
-        tensor_core_efficiency=round(calibrated_efficiency, 3),
-    )
+    model_name = data.get("config", {}).get("model", "") or ""
+    base_hw = PRESETS["rtx3050_05b"] if "0.5b" in model_name.lower() else PRESETS["rtx3050"]
 
-    console.print(f"  • Calibrated Launch Overhead: {calibrated_hw.kernel_launch_overhead_ms} ms")
-    console.print(f"  • Calibrated Tensor Core Efficiency: {calibrated_hw.tensor_core_efficiency*100:.1f}%")
+    calibrated_hw = base_hw.model_copy(update={
+        "name": f"Calibrated ({servebench_result.stem})",
+        "kernel_launch_overhead_ms": round(calibrated_launch, 3),
+        "tensor_core_efficiency": round(calibrated_efficiency, 3),
+    })
+
+    console.print(f"  * Calibrated Launch Overhead: {calibrated_hw.kernel_launch_overhead_ms} ms")
+    console.print(f"  * Calibrated Tensor Core Efficiency: {calibrated_hw.tensor_core_efficiency*100:.1f}%")
 
     if output_preset:
         output_preset.parent.mkdir(parents=True, exist_ok=True)
@@ -263,7 +283,7 @@ def sweep(
         sweep_records.append(rate_entry)
 
     # Render Pareto Saturation Table
-    table = Table(title=f"Saturation Pareto Curve · Goodput vs Load ({hw.name})", show_header=True, header_style="bold magenta")
+    table = Table(title=f"Saturation Pareto Curve - Goodput vs Load ({hw.name})", show_header=True, header_style="bold magenta")
     table.add_column("Arrival Rate", style="bold cyan", width=14, justify="right")
 
     # Get sample scheduler names

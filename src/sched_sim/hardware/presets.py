@@ -1,5 +1,6 @@
 """Predefined hardware and model configurations for realistic simulation."""
 
+from pathlib import Path
 from sched_sim.hardware.profile import HardwareProfile
 
 
@@ -23,7 +24,7 @@ PRESETS: dict[str, HardwareProfile] = {
         dtype_bytes=2,
     ),
     "rtx3050_05b": HardwareProfile(
-        name="RTX 3050 Laptop (6GB) · 0.5B",
+        name="RTX 3050 Laptop (6GB) - 0.5B",
         vram_gb=6.0,
         memory_bandwidth_gb_s=168.0,
         fp16_tflops=9.0,
@@ -98,7 +99,12 @@ PRESETS: dict[str, HardwareProfile] = {
 
 
 def get_hardware_profile(name_or_key: str) -> HardwareProfile:
-    """Retrieve hardware profile by key (e.g., 'rtx3050', 'a100') or default to rtx3050."""
+    """Retrieve hardware profile by key (e.g., 'rtx3050', 'a100') or custom JSON file path."""
+    path = Path(name_or_key)
+    if path.is_file():
+        with open(path, "r", encoding="utf-8") as f:
+            return HardwareProfile.model_validate_json(f.read())
+
     key = name_or_key.lower().replace("-", "").replace(" ", "")
     for k, v in PRESETS.items():
         if k == key or k.replace("_", "") == key:
