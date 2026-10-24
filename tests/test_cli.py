@@ -33,3 +33,57 @@ def test_cli_compare_fast():
     assert "LLM Serving Scheduler Leaderboard" in result.output
     assert "FCFS" in result.output
     assert "Chunked Prefill" in result.output
+
+
+def test_cli_trace_fast(tmp_path):
+    trace_file = "traces/lmsys_sample.json"
+    result = runner.invoke(
+        app,
+        ["trace", trace_file, "--scheduler", "chunked", "--no-gantt"],
+    )
+    assert result.exit_code == 0
+    assert "Execution Telemetry" in result.output
+    assert "Completed / Total" in result.output
+
+
+def test_cli_sweep_fast():
+    result = runner.invoke(
+        app,
+        [
+            "sweep",
+            "--schedulers",
+            "fcfs,chunked",
+            "--min-rate",
+            "2",
+            "--max-rate",
+            "4",
+            "--step",
+            "2",
+            "--duration",
+            "2",
+        ],
+    )
+    assert result.exit_code == 0
+    assert "Saturation Pareto Curve" in result.output
+    assert "Arrival Rate" in result.output
+
+
+def test_cli_calibrate(tmp_path):
+    import json
+    dummy_bench = tmp_path / "mock_servebench.json"
+    dummy_bench.write_text(json.dumps({
+        "summary": {
+            "ttft_ms": {"mean": 120.0},
+            "tpot_ms": {"mean": 28.5}
+        }
+    }))
+    out_preset = tmp_path / "calibrated_preset.json"
+
+    result = runner.invoke(
+        app,
+        ["calibrate", "--servebench-result", str(dummy_bench), "--output-preset", str(out_preset)],
+    )
+    assert result.exit_code == 0
+    assert "Loaded servebench benchmark data" in result.output
+    assert out_preset.exists()
+

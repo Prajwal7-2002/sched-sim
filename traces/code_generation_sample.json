@@ -1,0 +1,12 @@
+[
+  {"id": "code_001", "timestamp": 0.08, "prompt_tokens": 650, "output_tokens": 420, "slo_ttft": 0.40, "slo_tpot": 0.035},
+  {"id": "code_002", "timestamp": 0.22, "prompt_tokens": 820, "output_tokens": 310, "slo_ttft": 0.45, "slo_tpot": 0.035},
+  {"id": "code_003", "timestamp": 0.40, "prompt_tokens": 450, "output_tokens": 580, "slo_ttft": 0.35, "slo_tpot": 0.035},
+  {"id": "code_004", "timestamp": 0.55, "prompt_tokens": 1100, "output_tokens": 290, "slo_ttft": 0.50, "slo_tpot": 0.035},
+  {"id": "code_005", "timestamp": 0.72, "prompt_tokens": 780, "output_tokens": 460, "slo_ttft": 0.45, "slo_tpot": 0.035},
+  {"id": "code_006", "timestamp": 0.90, "prompt_tokens": 520, "output_tokens": 380, "slo_ttft": 0.35, "slo_tpot": 0.035},
+  {"id": "code_007", "timestamp": 1.15, "prompt_tokens": 940, "output_tokens": 510, "slo_ttft": 0.45, "slo_tpot": 0.035},
+  {"id": "code_008", "timestamp": 1.35, "prompt_tokens": 600, "output_tokens": 340, "slo_ttft": 0.40, "slo_tpot": 0.035},
+  {"id": "code_009", "timestamp": 1.55, "prompt_tokens": 1250, "output_tokens": 620, "slo_ttft": 0.55, "slo_tpot": 0.035},
+  {"id": "code_010", "timestamp": 1.78, "prompt_tokens": 480, "output_tokens": 410, "slo_ttft": 0.35, "slo_tpot": 0.035}
+]

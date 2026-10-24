@@ -1,0 +1,17 @@
+[
+  {"id": "rag_001", "timestamp": 0.05, "prompt_tokens": 3500, "output_tokens": 60, "slo_ttft": 0.80, "slo_tpot": 0.05},
+  {"id": "rag_002", "timestamp": 0.10, "prompt_tokens": 40, "output_tokens": 120, "slo_ttft": 0.20, "slo_tpot": 0.04},
+  {"id": "rag_003", "timestamp": 0.15, "prompt_tokens": 55, "output_tokens": 90, "slo_ttft": 0.20, "slo_tpot": 0.04},
+  {"id": "rag_004", "timestamp": 0.20, "prompt_tokens": 70, "output_tokens": 110, "slo_ttft": 0.20, "slo_tpot": 0.04},
+  {"id": "rag_005", "timestamp": 0.35, "prompt_tokens": 4200, "output_tokens": 80, "slo_ttft": 0.90, "slo_tpot": 0.05},
+  {"id": "rag_006", "timestamp": 0.40, "prompt_tokens": 50, "output_tokens": 85, "slo_ttft": 0.20, "slo_tpot": 0.04},
+  {"id": "rag_007", "timestamp": 0.45, "prompt_tokens": 60, "output_tokens": 70, "slo_ttft": 0.20, "slo_tpot": 0.04},
+  {"id": "rag_008", "timestamp": 0.60, "prompt_tokens": 2800, "output_tokens": 50, "slo_ttft": 0.70, "slo_tpot": 0.05},
+  {"id": "rag_009", "timestamp": 0.65, "prompt_tokens": 45, "output_tokens": 95, "slo_ttft": 0.20, "slo_tpot": 0.04},
+  {"id": "rag_010", "timestamp": 0.70, "prompt_tokens": 65, "output_tokens": 130, "slo_ttft": 0.20, "slo_tpot": 0.04},
+  {"id": "rag_011", "timestamp": 0.85, "prompt_tokens": 5000, "output_tokens": 100, "slo_ttft": 1.00, "slo_tpot": 0.05},
+  {"id": "rag_012", "timestamp": 0.90, "prompt_tokens": 55, "output_tokens": 75, "slo_ttft": 0.20, "slo_tpot": 0.04},
+  {"id": "rag_013", "timestamp": 0.95, "prompt_tokens": 80, "output_tokens": 65, "slo_ttft": 0.20, "slo_tpot": 0.04},
+  {"id": "rag_014", "timestamp": 1.10, "prompt_tokens": 3200, "output_tokens": 70, "slo_ttft": 0.80, "slo_tpot": 0.05},
+  {"id": "rag_015", "timestamp": 1.15, "prompt_tokens": 40, "output_tokens": 85, "slo_ttft": 0.20, "slo_tpot": 0.04}
+]
