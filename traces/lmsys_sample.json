@@ -1,0 +1,22 @@
+[
+  {"id": "lmsys_001", "timestamp": 0.05, "prompt_tokens": 120, "output_tokens": 85, "slo_ttft": 0.25, "slo_tpot": 0.04},
+  {"id": "lmsys_002", "timestamp": 0.12, "prompt_tokens": 45, "output_tokens": 150, "slo_ttft": 0.20, "slo_tpot": 0.04},
+  {"id": "lmsys_003", "timestamp": 0.28, "prompt_tokens": 340, "output_tokens": 60, "slo_ttft": 0.35, "slo_tpot": 0.04},
+  {"id": "lmsys_004", "timestamp": 0.35, "prompt_tokens": 80, "output_tokens": 40, "slo_ttft": 0.20, "slo_tpot": 0.04},
+  {"id": "lmsys_005", "timestamp": 0.49, "prompt_tokens": 520, "output_tokens": 110, "slo_ttft": 0.40, "slo_tpot": 0.04},
+  {"id": "lmsys_006", "timestamp": 0.62, "prompt_tokens": 65, "output_tokens": 95, "slo_ttft": 0.20, "slo_tpot": 0.04},
+  {"id": "lmsys_007", "timestamp": 0.75, "prompt_tokens": 210, "output_tokens": 130, "slo_ttft": 0.30, "slo_tpot": 0.04},
+  {"id": "lmsys_008", "timestamp": 0.88, "prompt_tokens": 180, "output_tokens": 55, "slo_ttft": 0.25, "slo_tpot": 0.04},
+  {"id": "lmsys_009", "timestamp": 1.02, "prompt_tokens": 95, "output_tokens": 200, "slo_ttft": 0.20, "slo_tpot": 0.04},
+  {"id": "lmsys_010", "timestamp": 1.15, "prompt_tokens": 410, "output_tokens": 75, "slo_ttft": 0.35, "slo_tpot": 0.04},
+  {"id": "lmsys_011", "timestamp": 1.25, "prompt_tokens": 70, "output_tokens": 60, "slo_ttft": 0.20, "slo_tpot": 0.04},
+  {"id": "lmsys_012", "timestamp": 1.39, "prompt_tokens": 305, "output_tokens": 140, "slo_ttft": 0.30, "slo_tpot": 0.04},
+  {"id": "lmsys_013", "timestamp": 1.51, "prompt_tokens": 115, "output_tokens": 80, "slo_ttft": 0.25, "slo_tpot": 0.04},
+  {"id": "lmsys_014", "timestamp": 1.68, "prompt_tokens": 580, "output_tokens": 190, "slo_ttft": 0.45, "slo_tpot": 0.04},
+  {"id": "lmsys_015", "timestamp": 1.82, "prompt_tokens": 90, "output_tokens": 45, "slo_ttft": 0.20, "slo_tpot": 0.04},
+  {"id": "lmsys_016", "timestamp": 1.95, "prompt_tokens": 240, "output_tokens": 115, "slo_ttft": 0.30, "slo_tpot": 0.04},
+  {"id": "lmsys_017", "timestamp": 2.10, "prompt_tokens": 160, "output_tokens": 70, "slo_ttft": 0.25, "slo_tpot": 0.04},
+  {"id": "lmsys_018", "timestamp": 2.22, "prompt_tokens": 375, "output_tokens": 160, "slo_ttft": 0.35, "slo_tpot": 0.04},
+  {"id": "lmsys_019", "timestamp": 2.38, "prompt_tokens": 85, "output_tokens": 50, "slo_ttft": 0.20, "slo_tpot": 0.04},
+  {"id": "lmsys_020", "timestamp": 2.50, "prompt_tokens": 490, "output_tokens": 125, "slo_ttft": 0.40, "slo_tpot": 0.04}
+]

@@ -75,7 +75,19 @@ Benchmark all 5 scheduling policies on the exact same Poisson arrival trace:
 sched-sim compare --schedulers fcfs,sjf,chunked,slo,disaggregated --workload rag --hardware a100
 ```
 
-### 3. Check Silicon Hardware Presets
+### 3. Replay Real-World Conversation Traces
+Replay Chatbot Arena conversation traces through the simulator:
+```bash
+sched-sim trace ./traces/lmsys_sample.json --scheduler chunked
+```
+
+### 4. Sweep Load to Discover Saturation Knees
+Discover the exact request rate where each scheduler hits its Goodput cliff:
+```bash
+sched-sim sweep --schedulers fcfs,chunked,slo,disaggregated --workload rag --min-rate 2 --max-rate 18 --step 4
+```
+
+### 5. Check Silicon Hardware Presets
 Inspect calibrated hardware profiles:
 ```bash
 sched-sim info

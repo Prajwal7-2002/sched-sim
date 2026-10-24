@@ -1,0 +1,49 @@
+site_name: sched-sim
+site_description: High-fidelity discrete-event simulator for LLM serving schedulers.
+site_author: Prajwal Pujari
+site_url: https://prajwal7-2002.github.io/sched-sim/
+repo_url: https://github.com/Prajwal7-2002/sched-sim
+repo_name: Prajwal7-2002/sched-sim
+
+theme:
+  name: material
+  palette:
+    - scheme: slate
+      primary: teal
+      accent: cyan
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+    - scheme: default
+      primary: teal
+      accent: cyan
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.tabs
+    - content.code.copy
+    - content.code.annotate
+
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+  - pymdownx.arithmatex:
+      generic: true
+  - tables
+  - admonition
+
+extra_javascript:
+  - https://polyfill.io/v3/polyfill.min.js?features=es6
+  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
+
+nav:
+  - Overview: index.md
+  - Learning Guide: learn-scheduling.md
+  - Theoretical Guide: theoretical-guide.md
+  - Hardware Calibration: calibration-guide.md

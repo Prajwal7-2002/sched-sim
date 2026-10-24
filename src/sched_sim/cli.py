@@ -215,6 +215,80 @@ def calibrate(
 
 
 @app.command()
+def sweep(
+    schedulers: Annotated[str, typer.Option("--schedulers", help="Comma-separated schedulers to sweep")] = "fcfs,chunked,slo,disaggregated",
+    workload: Annotated[str, typer.Option("--workload", "-w", help="Workload type: chatbot, rag, codegen, mixed")] = "rag",
+    hardware: Annotated[str, typer.Option("--hardware", "-h", help="Hardware preset")] = "rtx3050",
+    min_rate: Annotated[float, typer.Option("--min-rate", help="Starting arrival rate (req/s)")] = 2.0,
+    max_rate: Annotated[float, typer.Option("--max-rate", help="Maximum arrival rate (req/s)")] = 18.0,
+    step: Annotated[float, typer.Option("--step", help="Rate increment step")] = 4.0,
+    duration: Annotated[float, typer.Option("--duration", "-d", help="Simulation duration at each rate step")] = 10.0,
+    token_budget: Annotated[int, typer.Option("--token-budget", help="Chunked prefill budget")] = 512,
+    seed: Annotated[int, typer.Option("--seed", help="Random seed")] = 42,
+    output: Annotated[Optional[Path], typer.Option("--output", "-o", help="Optional output JSON path")] = None,
+) -> None:
+    """Sweep arrival rate to discover scheduler saturation knees and Goodput cliffs."""
+    hw = get_hardware_profile(hardware)
+    scheduler_keys = [s.strip() for s in schedulers.split(",") if s.strip()]
+
+    rates: list[float] = []
+    curr = min_rate
+    while curr <= max_rate + 1e-5:
+        rates.append(round(curr, 2))
+        curr += step
+
+    console.print(f"[bold cyan]Initiating load sweep across {len(rates)} rate steps ({min_rate} -> {max_rate} req/s)...[/bold cyan]")
+
+    sweep_records: list[dict] = []
+    for r in rates:
+        base_requests = generate_workload(
+            rate_req_per_s=r,
+            duration_s=duration,
+            workload_type=workload,
+            seed=seed,
+        )
+        rate_entry = {"rate": r, "results": {}}
+        with console.status(f"[bold yellow]Simulating load: {r:.1f} req/s ({len(base_requests)} requests)..."):
+            for key in scheduler_keys:
+                req_clones = [req.model_copy(deep=True) for req in base_requests]
+                sched_instance = create_scheduler(key, hw, token_budget=token_budget)
+                sim = Simulator(hw, sched_instance)
+                sim.submit_workload(req_clones)
+                m = sim.run()
+                rate_entry["results"][sched_instance.name] = {
+                    "goodput": m.goodput_ratio,
+                    "ttft_p99": m.ttft_ms.p99,
+                    "throughput_tok_s": m.throughput_tok_per_s,
+                }
+        sweep_records.append(rate_entry)
+
+    # Render Pareto Saturation Table
+    table = Table(title=f"Saturation Pareto Curve · Goodput vs Load ({hw.name})", show_header=True, header_style="bold magenta")
+    table.add_column("Arrival Rate", style="bold cyan", width=14, justify="right")
+
+    # Get sample scheduler names
+    sample_names = list(sweep_records[0]["results"].keys())
+    for name in sample_names:
+        table.add_column(f"{name} (Goodput %)", justify="right")
+
+    for entry in sweep_records:
+        row = [f"{entry['rate']:.1f} req/s"]
+        for name in sample_names:
+            gp = entry["results"][name]["goodput"]
+            color = "green" if gp >= 90.0 else ("yellow" if gp >= 60.0 else "red")
+            row.append(f"[{color}]{gp:.1f}%[/{color}]")
+        table.add_row(*row)
+
+    console.print(table)
+
+    if output:
+        output.parent.mkdir(parents=True, exist_ok=True)
+        with open(output, "w", encoding="utf-8") as f:
+            json.dump(sweep_records, f, indent=2)
+        console.print(f"\n[green]Saved sweep data to {output}[/green]")
+
+
+@app.command()
 def info() -> None:
     """Display available silicon hardware presets and workload distribution profiles."""
     hw_table = Table(title="Hardware Silicon Presets", show_header=True, header_style="bold cyan")

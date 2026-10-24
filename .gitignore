@@ -43,3 +43,6 @@ htmlcov/
 results/
 *.json
 !traces/*.json
+
+# Docs build
+site/
