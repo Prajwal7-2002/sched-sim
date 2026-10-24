@@ -1,0 +1,61 @@
+[build-system]
+requires = ["uv_build>=0.12,<0.13"]
+build-backend = "uv_build"
+
+[project]
+name = "sched-sim"
+version = "0.1.0"
+description = "High-fidelity discrete-event simulator for LLM serving schedulers (FCFS, SJF, Chunked Prefill, SLO-Aware, Disaggregated)."
+readme = "README.md"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+requires-python = ">=3.11"
+authors = [{ name = "Prajwal Pujari", email = "prajwalpujari16@gmail.com" }]
+keywords = [
+    "llm",
+    "inference",
+    "serving",
+    "scheduler",
+    "discrete-event-simulation",
+    "chunked-prefill",
+    "paged-attention",
+    "queueing-theory",
+    "vllm",
+    "sarathi",
+    "distserve"
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Operating System :: OS Independent",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: System :: Benchmark",
+    "Topic :: System :: Hardware",
+]
+dependencies = [
+    "typer>=0.12",
+    "rich>=13",
+    "pydantic>=2.6",
+    "pyyaml>=6.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8",
+    "pytest-asyncio>=0.23",
+    "ruff>=0.5",
+]
+
+[project.scripts]
+sched-sim = "sched_sim.cli:app"
+
+[project.urls]
+Homepage = "https://github.com/Prajwal7-2002/sched-sim"
+Documentation = "https://prajwal7-2002.github.io/sched-sim/"
+Repository = "https://github.com/Prajwal7-2002/sched-sim"
+Issues = "https://github.com/Prajwal7-2002/sched-sim/issues"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
