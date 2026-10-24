@@ -1,0 +1,19 @@
+{
+  "name": "Calibrated (quick-ollama-np4)",
+  "vram_gb": 6.0,
+  "memory_bandwidth_gb_s": 168.0,
+  "fp16_tflops": 9.0,
+  "tensor_core_efficiency": 0.7,
+  "kernel_launch_overhead_ms": 0.025,
+  "pcie_bandwidth_gb_s": 16.0,
+  "network_bandwidth_gbps": 100.0,
+  "network_latency_ms": 0.02,
+  "model_name": "Qwen/Qwen2.5-1.5B-Instruct",
+  "parameter_count_billions": 1.54,
+  "num_layers": 28,
+  "hidden_size": 1536,
+  "num_heads": 12,
+  "num_kv_heads": 2,
+  "head_dim": 128,
+  "dtype_bytes": 2
+}

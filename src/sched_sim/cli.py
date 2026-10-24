@@ -2,10 +2,12 @@
 
 import json
 from pathlib import Path
-from typing import Annotated, Optional
+from typing import Annotated
+
 import typer
 from rich.console import Console
 from rich.table import Table
+
 from sched_sim.core.event_engine import Simulator
 from sched_sim.hardware.latency_model import RooflineLatencyModel
 from sched_sim.hardware.presets import PRESETS, get_hardware_profile
@@ -20,7 +22,10 @@ from sched_sim.schedulers.sjf import SJFScheduler
 from sched_sim.schedulers.slo_aware import SLOAwareScheduler
 from sched_sim.visualizer.exporter import export_metrics_json, export_metrics_markdown
 from sched_sim.visualizer.gantt import print_gantt_timeline
-from sched_sim.visualizer.terminal import print_comparison_table, print_single_run_summary
+from sched_sim.visualizer.terminal import (
+    print_comparison_table,
+    print_single_run_summary,
+)
 from sched_sim.workloads.distributions import DISTRIBUTIONS
 from sched_sim.workloads.generator import generate_workload
 from sched_sim.workloads.trace_loader import load_trace_file
@@ -43,7 +48,9 @@ def create_scheduler(
     """Factory creating configured scheduler instance."""
     block_manager = BlockManager(hardware)
     latency_model = RooflineLatencyModel(hardware)
-    preemption_handler = PreemptionHandler(block_manager, latency_model, preemption_mode)
+    preemption_handler = PreemptionHandler(
+        block_manager, latency_model, preemption_mode
+    )
 
     key = name.lower().replace("-", "").replace("_", "")
     if "chunk" in key:
@@ -55,32 +62,87 @@ def create_scheduler(
             max_token_budget=token_budget,
         )
     elif "sjf" in key or "shortest" in key:
-        return SJFScheduler(block_manager, latency_model, preemption_handler, max_batch_size)
+        return SJFScheduler(
+            block_manager, latency_model, preemption_handler, max_batch_size
+        )
     elif "slo" in key or "deadline" in key:
-        return SLOAwareScheduler(block_manager, latency_model, preemption_handler, max_batch_size)
+        return SLOAwareScheduler(
+            block_manager, latency_model, preemption_handler, max_batch_size
+        )
     elif "disagg" in key or "distserve" in key or "splitwise" in key:
-        return DisaggregatedScheduler(block_manager, latency_model, preemption_handler, max_batch_size)
+        return DisaggregatedScheduler(
+            block_manager, latency_model, preemption_handler, max_batch_size
+        )
     else:
-        return FCFSScheduler(block_manager, latency_model, preemption_handler, max_batch_size)
+        return FCFSScheduler(
+            block_manager, latency_model, preemption_handler, max_batch_size
+        )
 
 
 @app.command()
 def run(
-    scheduler: Annotated[str, typer.Option("--scheduler", "-s", help="Scheduler policy: fcfs, sjf, chunked, slo, disaggregated")] = "chunked",
-    workload: Annotated[str, typer.Option("--workload", "-w", help="Workload type: chatbot, rag, codegen, mixed")] = "chatbot",
-    hardware: Annotated[str, typer.Option("--hardware", "-h", help="Hardware preset: rtx3050, rtx3050_05b, t4, a100, h100")] = "rtx3050",
-    rate: Annotated[float, typer.Option("--rate", "-r", help="Arrival rate in requests/sec")] = 10.0,
-    duration: Annotated[float, typer.Option("--duration", "-d", help="Simulation duration in seconds")] = 10.0,
-    pattern: Annotated[str, typer.Option("--pattern", help="Arrival pattern: poisson, bursty, constant")] = "poisson",
-    preemption: Annotated[str, typer.Option("--preemption", help="Preemption mode: recompute, swap")] = "recompute",
-    token_budget: Annotated[int, typer.Option("--token-budget", help="Token budget per step for chunked prefill")] = 512,
-    seed: Annotated[int, typer.Option("--seed", help="Random seed for deterministic simulation")] = 42,
-    gantt: Annotated[bool, typer.Option("--gantt/--no-gantt", help="Display ASCII Gantt execution timeline")] = True,
-    output: Annotated[Optional[Path], typer.Option("--output", "-o", help="Optional output path (.json or .md)")] = None,
+    scheduler: Annotated[
+        str,
+        typer.Option(
+            "--scheduler",
+            "-s",
+            help="Scheduler policy: fcfs, sjf, chunked, slo, disaggregated",
+        ),
+    ] = "chunked",
+    workload: Annotated[
+        str,
+        typer.Option(
+            "--workload", "-w", help="Workload type: chatbot, rag, codegen, mixed"
+        ),
+    ] = "chatbot",
+    hardware: Annotated[
+        str,
+        typer.Option(
+            "--hardware",
+            "-h",
+            help="Hardware preset: a100, h100, t4, rtx3050, or path to custom JSON",
+        ),
+    ] = "a100",
+    rate: Annotated[
+        float, typer.Option("--rate", "-r", help="Arrival rate in requests/sec")
+    ] = 10.0,
+    duration: Annotated[
+        float, typer.Option("--duration", "-d", help="Simulation duration in seconds")
+    ] = 10.0,
+    pattern: Annotated[
+        str,
+        typer.Option("--pattern", help="Arrival pattern: poisson, bursty, constant"),
+    ] = "poisson",
+    preemption: Annotated[
+        str, typer.Option("--preemption", help="Preemption mode: recompute, swap")
+    ] = "recompute",
+    token_budget: Annotated[
+        int,
+        typer.Option(
+            "--token-budget", help="Token budget per step for chunked prefill"
+        ),
+    ] = 512,
+    seed: Annotated[
+        int, typer.Option("--seed", help="Random seed for deterministic simulation")
+    ] = 42,
+    gantt: Annotated[
+        bool,
+        typer.Option(
+            "--gantt/--no-gantt", help="Display ASCII Gantt execution timeline"
+        ),
+    ] = True,
+    output: Annotated[
+        Path | None,
+        typer.Option("--output", "-o", help="Optional output path (.json or .md)"),
+    ] = None,
 ) -> None:
     """Run a single LLM serving simulation scenario."""
     hw = get_hardware_profile(hardware)
-    p_mode = PreemptionMode.SWAP if preemption.lower() == "swap" else PreemptionMode.RECOMPUTE
+    p_mode = (
+        PreemptionMode.SWAP
+        if preemption.lower() == "swap"
+        else PreemptionMode.RECOMPUTE
+    )
 
     sched_instance = create_scheduler(scheduler, hw, p_mode, token_budget=token_budget)
     simulator = Simulator(hw, sched_instance, preemption_mode=p_mode)
@@ -114,13 +176,42 @@ def run(
 
 @app.command()
 def compare(
-    schedulers: Annotated[str, typer.Option("--schedulers", help="Comma-separated list: fcfs,sjf,chunked,slo,disaggregated")] = "fcfs,sjf,chunked,slo,disaggregated",
-    workload: Annotated[str, typer.Option("--workload", "-w", help="Workload type: chatbot, rag, codegen, mixed")] = "rag",
-    hardware: Annotated[str, typer.Option("--hardware", "-h", help="Hardware preset: rtx3050, t4, a100, h100")] = "rtx3050",
-    rate: Annotated[float, typer.Option("--rate", "-r", help="Arrival rate in requests/sec")] = 8.0,
-    duration: Annotated[float, typer.Option("--duration", "-d", help="Simulation duration in seconds")] = 15.0,
-    token_budget: Annotated[int, typer.Option("--token-budget", help="Token budget per step for chunked prefill")] = 512,
-    seed: Annotated[int, typer.Option("--seed", help="Random seed for deterministic comparison")] = 42,
+    schedulers: Annotated[
+        str,
+        typer.Option(
+            "--schedulers",
+            help="Comma-separated list: fcfs,sjf,chunked,slo,disaggregated",
+        ),
+    ] = "fcfs,sjf,chunked,slo,disaggregated",
+    workload: Annotated[
+        str,
+        typer.Option(
+            "--workload", "-w", help="Workload type: chatbot, rag, codegen, mixed"
+        ),
+    ] = "rag",
+    hardware: Annotated[
+        str,
+        typer.Option(
+            "--hardware",
+            "-h",
+            help="Hardware preset: a100, h100, t4, rtx3050, or path to custom JSON",
+        ),
+    ] = "a100",
+    rate: Annotated[
+        float, typer.Option("--rate", "-r", help="Arrival rate in requests/sec")
+    ] = 8.0,
+    duration: Annotated[
+        float, typer.Option("--duration", "-d", help="Simulation duration in seconds")
+    ] = 15.0,
+    token_budget: Annotated[
+        int,
+        typer.Option(
+            "--token-budget", help="Token budget per step for chunked prefill"
+        ),
+    ] = 512,
+    seed: Annotated[
+        int, typer.Option("--seed", help="Random seed for deterministic comparison")
+    ] = 42,
 ) -> None:
     """Run multiple scheduling policies side-by-side on the exact same workload trace."""
     hw = get_hardware_profile(hardware)
@@ -135,7 +226,9 @@ def compare(
     )
 
     results = []
-    with console.status(f"[bold magenta]Comparing {len(scheduler_keys)} schedulers on identical trace..."):
+    with console.status(
+        f"[bold magenta]Comparing {len(scheduler_keys)} schedulers on identical trace..."
+    ):
         for key in scheduler_keys:
             # Deep clone requests for fair isolation
             req_clones = [r.model_copy(deep=True) for r in base_requests]
@@ -151,10 +244,23 @@ def compare(
 @app.command()
 def trace(
     trace_file: Annotated[Path, typer.Argument(help="Path to trace JSON file")],
-    scheduler: Annotated[str, typer.Option("--scheduler", "-s", help="Scheduler policy")] = "chunked",
-    hardware: Annotated[str, typer.Option("--hardware", "-h", help="Hardware preset")] = "rtx3050",
-    token_budget: Annotated[int, typer.Option("--token-budget", help="Chunked prefill budget")] = 512,
-    gantt: Annotated[bool, typer.Option("--gantt/--no-gantt", help="Show Gantt timeline")] = True,
+    scheduler: Annotated[
+        str, typer.Option("--scheduler", "-s", help="Scheduler policy")
+    ] = "chunked",
+    hardware: Annotated[
+        str,
+        typer.Option(
+            "--hardware",
+            "-h",
+            help="Hardware preset: a100, h100, t4, rtx3050, or path to custom JSON",
+        ),
+    ] = "a100",
+    token_budget: Annotated[
+        int, typer.Option("--token-budget", help="Chunked prefill budget")
+    ] = 512,
+    gantt: Annotated[
+        bool, typer.Option("--gantt/--no-gantt", help="Show Gantt timeline")
+    ] = True,
 ) -> None:
     """Replay a real-world trace file through the simulator."""
     hw = get_hardware_profile(hardware)
@@ -175,8 +281,16 @@ def trace(
 
 @app.command()
 def calibrate(
-    servebench_result: Annotated[Path, typer.Option("--servebench-result", "-s", help="Path to servebench JSON export file")],
-    output_preset: Annotated[Optional[Path], typer.Option("--output-preset", "-o", help="Optional output JSON preset file")] = None,
+    servebench_result: Annotated[
+        Path,
+        typer.Option(
+            "--servebench-result", "-s", help="Path to servebench JSON export file"
+        ),
+    ],
+    output_preset: Annotated[
+        Path | None,
+        typer.Option("--output-preset", "-o", help="Optional output JSON preset file"),
+    ] = None,
 ) -> None:
     """Calibrate hardware simulation parameters directly from a servebench benchmark export."""
     if not servebench_result.exists():
@@ -207,25 +321,56 @@ def calibrate(
         if tpot_val is not None:
             measured_tpot = tpot_val * 1000.0 if tpot_val < 5.0 else tpot_val
 
-    console.print(f"[bold green][OK] Loaded servebench benchmark data from {servebench_result.name}[/bold green]")
+    console.print(
+        f"[bold green][OK] Loaded servebench benchmark data from {servebench_result.name}[/bold green]"
+    )
     console.print(f"  * Measured TTFT mean: {measured_ttft:.2f} ms")
     console.print(f"  * Measured TPOT mean: {measured_tpot:.2f} ms")
 
-    # Fit launch overhead and tensor core efficiency
-    calibrated_launch = max(0.02, min(0.50, measured_tpot * 0.005))
-    calibrated_efficiency = max(0.30, min(0.70, (150.0 / max(50.0, measured_ttft)) * 0.48))
-
     model_name = data.get("config", {}).get("model", "") or ""
-    base_hw = PRESETS["rtx3050_05b"] if "0.5b" in model_name.lower() else PRESETS["rtx3050"]
+    base_hw = (
+        PRESETS["rtx3050_05b"] if "0.5b" in model_name.lower() else PRESETS["rtx3050"]
+    )
 
-    calibrated_hw = base_hw.model_copy(update={
-        "name": f"Calibrated ({servebench_result.stem})",
-        "kernel_launch_overhead_ms": round(calibrated_launch, 3),
-        "tensor_core_efficiency": round(calibrated_efficiency, 3),
-    })
+    # Base raw weight memory streaming time (ms) at theoretical DRAM bandwidth
+    base_mem_ms = (
+        (base_hw.parameter_count_billions * 1e9 * base_hw.dtype_bytes)
+        / (base_hw.memory_bandwidth_gb_s * 1e9)
+    ) * 1000.0
 
-    console.print(f"  * Calibrated Launch Overhead: {calibrated_hw.kernel_launch_overhead_ms} ms")
-    console.print(f"  * Calibrated Tensor Core Efficiency: {calibrated_hw.tensor_core_efficiency*100:.1f}%")
+    if measured_tpot > base_mem_ms:
+        # Software dispatch overhead (e.g., Python runtime, eager kernel dispatch)
+        calibrated_launch = measured_tpot - base_mem_ms
+        calibrated_bw = base_hw.memory_bandwidth_gb_s
+    else:
+        # High MBU or quantization: calibrate effective weights memory streaming bandwidth
+        calibrated_launch = 0.02
+        calibrated_bw = (
+            base_hw.parameter_count_billions * 1e9 * base_hw.dtype_bytes
+        ) / (max(0.001, (measured_tpot - 0.02) / 1000.0) * 1e9)
+
+    calibrated_efficiency = max(
+        0.30, min(0.75, (150.0 / max(40.0, measured_ttft)) * 0.48)
+    )
+
+    calibrated_hw = base_hw.model_copy(
+        update={
+            "name": f"Calibrated ({servebench_result.stem})",
+            "kernel_launch_overhead_ms": round(calibrated_launch, 3),
+            "memory_bandwidth_gb_s": round(calibrated_bw, 1),
+            "tensor_core_efficiency": round(calibrated_efficiency, 3),
+        }
+    )
+
+    console.print(
+        f"  * Calibrated Launch Overhead: {calibrated_hw.kernel_launch_overhead_ms} ms"
+    )
+    console.print(
+        f"  * Calibrated Memory Bandwidth: {calibrated_hw.memory_bandwidth_gb_s} GB/s"
+    )
+    console.print(
+        f"  * Calibrated Tensor Core Efficiency: {calibrated_hw.tensor_core_efficiency * 100:.1f}%"
+    )
 
     if output_preset:
         output_preset.parent.mkdir(parents=True, exist_ok=True)
@@ -236,16 +381,41 @@ def calibrate(
 
 @app.command()
 def sweep(
-    schedulers: Annotated[str, typer.Option("--schedulers", help="Comma-separated schedulers to sweep")] = "fcfs,chunked,slo,disaggregated",
-    workload: Annotated[str, typer.Option("--workload", "-w", help="Workload type: chatbot, rag, codegen, mixed")] = "rag",
-    hardware: Annotated[str, typer.Option("--hardware", "-h", help="Hardware preset")] = "rtx3050",
-    min_rate: Annotated[float, typer.Option("--min-rate", help="Starting arrival rate (req/s)")] = 2.0,
-    max_rate: Annotated[float, typer.Option("--max-rate", help="Maximum arrival rate (req/s)")] = 18.0,
+    schedulers: Annotated[
+        str, typer.Option("--schedulers", help="Comma-separated schedulers to sweep")
+    ] = "fcfs,chunked,slo,disaggregated",
+    workload: Annotated[
+        str,
+        typer.Option(
+            "--workload", "-w", help="Workload type: chatbot, rag, codegen, mixed"
+        ),
+    ] = "rag",
+    hardware: Annotated[
+        str,
+        typer.Option(
+            "--hardware",
+            "-h",
+            help="Hardware preset: a100, h100, t4, rtx3050, or path to custom JSON",
+        ),
+    ] = "a100",
+    min_rate: Annotated[
+        float, typer.Option("--min-rate", help="Starting arrival rate (req/s)")
+    ] = 2.0,
+    max_rate: Annotated[
+        float, typer.Option("--max-rate", help="Maximum arrival rate (req/s)")
+    ] = 18.0,
     step: Annotated[float, typer.Option("--step", help="Rate increment step")] = 4.0,
-    duration: Annotated[float, typer.Option("--duration", "-d", help="Simulation duration at each rate step")] = 10.0,
-    token_budget: Annotated[int, typer.Option("--token-budget", help="Chunked prefill budget")] = 512,
+    duration: Annotated[
+        float,
+        typer.Option("--duration", "-d", help="Simulation duration at each rate step"),
+    ] = 10.0,
+    token_budget: Annotated[
+        int, typer.Option("--token-budget", help="Chunked prefill budget")
+    ] = 512,
     seed: Annotated[int, typer.Option("--seed", help="Random seed")] = 42,
-    output: Annotated[Optional[Path], typer.Option("--output", "-o", help="Optional output JSON path")] = None,
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Optional output JSON path")
+    ] = None,
 ) -> None:
     """Sweep arrival rate to discover scheduler saturation knees and Goodput cliffs."""
     hw = get_hardware_profile(hardware)
@@ -257,7 +427,9 @@ def sweep(
         rates.append(round(curr, 2))
         curr += step
 
-    console.print(f"[bold cyan]Initiating load sweep across {len(rates)} rate steps ({min_rate} -> {max_rate} req/s)...[/bold cyan]")
+    console.print(
+        f"[bold cyan]Initiating load sweep across {len(rates)} rate steps ({min_rate} -> {max_rate} req/s)...[/bold cyan]"
+    )
 
     sweep_records: list[dict] = []
     for r in rates:
@@ -268,7 +440,9 @@ def sweep(
             seed=seed,
         )
         rate_entry = {"rate": r, "results": {}}
-        with console.status(f"[bold yellow]Simulating load: {r:.1f} req/s ({len(base_requests)} requests)..."):
+        with console.status(
+            f"[bold yellow]Simulating load: {r:.1f} req/s ({len(base_requests)} requests)..."
+        ):
             for key in scheduler_keys:
                 req_clones = [req.model_copy(deep=True) for req in base_requests]
                 sched_instance = create_scheduler(key, hw, token_budget=token_budget)
@@ -283,7 +457,11 @@ def sweep(
         sweep_records.append(rate_entry)
 
     # Render Pareto Saturation Table
-    table = Table(title=f"Saturation Pareto Curve - Goodput vs Load ({hw.name})", show_header=True, header_style="bold magenta")
+    table = Table(
+        title=f"Saturation Pareto Curve - Goodput vs Load ({hw.name})",
+        show_header=True,
+        header_style="bold magenta",
+    )
     table.add_column("Arrival Rate", style="bold cyan", width=14, justify="right")
 
     # Get sample scheduler names
@@ -311,7 +489,9 @@ def sweep(
 @app.command()
 def info() -> None:
     """Display available silicon hardware presets and workload distribution profiles."""
-    hw_table = Table(title="Hardware Silicon Presets", show_header=True, header_style="bold cyan")
+    hw_table = Table(
+        title="Hardware Silicon Presets", show_header=True, header_style="bold cyan"
+    )
     hw_table.add_column("Key", style="bold yellow")
     hw_table.add_column("Silicon Target", style="white")
     hw_table.add_column("VRAM", justify="right")
@@ -330,7 +510,11 @@ def info() -> None:
         )
     console.print(hw_table)
 
-    dist_table = Table(title="Workload Distribution Profiles", show_header=True, header_style="bold magenta")
+    dist_table = Table(
+        title="Workload Distribution Profiles",
+        show_header=True,
+        header_style="bold magenta",
+    )
     dist_table.add_column("Key", style="bold yellow")
     dist_table.add_column("Domain", style="white")
     dist_table.add_column("Prompt Length (Min-Mean-Max)", justify="center")
@@ -343,7 +527,7 @@ def info() -> None:
             v.name,
             f"{v.prompt_min} - {v.prompt_mean} - {v.prompt_max}t",
             f"{v.output_min} - {v.output_mean} - {v.output_max}t",
-            f"{v.slo_ttft_s*1000:.0f} ms",
+            f"{v.slo_ttft_s * 1000:.0f} ms",
         )
     console.print(dist_table)
 

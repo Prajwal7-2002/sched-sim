@@ -1,6 +1,7 @@
 """Tests for sched-sim Typer CLI."""
 
 from typer.testing import CliRunner
+
 from sched_sim.cli import app
 
 runner = CliRunner()
@@ -17,7 +18,18 @@ def test_cli_info():
 def test_cli_run_fast():
     result = runner.invoke(
         app,
-        ["run", "--scheduler", "chunked", "--workload", "chatbot", "--duration", "2", "--rate", "5", "--no-gantt"],
+        [
+            "run",
+            "--scheduler",
+            "chunked",
+            "--workload",
+            "chatbot",
+            "--duration",
+            "2",
+            "--rate",
+            "5",
+            "--no-gantt",
+        ],
     )
     assert result.exit_code == 0
     assert "Execution Telemetry" in result.output
@@ -70,18 +82,22 @@ def test_cli_sweep_fast():
 
 def test_cli_calibrate(tmp_path):
     import json
+
     dummy_bench = tmp_path / "mock_servebench.json"
-    dummy_bench.write_text(json.dumps({
-        "summary": {
-            "ttft_ms": {"mean": 120.0},
-            "tpot_ms": {"mean": 28.5}
-        }
-    }))
+    dummy_bench.write_text(
+        json.dumps({"summary": {"ttft_ms": {"mean": 120.0}, "tpot_ms": {"mean": 28.5}}})
+    )
     out_preset = tmp_path / "calibrated_preset.json"
 
     result = runner.invoke(
         app,
-        ["calibrate", "--servebench-result", str(dummy_bench), "--output-preset", str(out_preset)],
+        [
+            "calibrate",
+            "--servebench-result",
+            str(dummy_bench),
+            "--output-preset",
+            str(out_preset),
+        ],
     )
     assert result.exit_code == 0
     assert "Loaded servebench benchmark data" in result.output
@@ -90,25 +106,36 @@ def test_cli_calibrate(tmp_path):
 
 def test_cli_calibrate_nested_levels_and_run(tmp_path):
     import json
+
     from sched_sim.hardware.presets import get_hardware_profile
 
     dummy_bench = tmp_path / "servebench_np4.json"
-    dummy_bench.write_text(json.dumps({
-        "config": {"model": "qwen2.5:0.5b"},
-        "levels": [
+    dummy_bench.write_text(
+        json.dumps(
             {
-                "summary": {
-                    "ttft": {"mean": 0.045},  # 45 ms in seconds
-                    "tpot": {"mean": 0.005},  # 5 ms in seconds
-                }
+                "config": {"model": "qwen2.5:0.5b"},
+                "levels": [
+                    {
+                        "summary": {
+                            "ttft": {"mean": 0.045},  # 45 ms in seconds
+                            "tpot": {"mean": 0.005},  # 5 ms in seconds
+                        }
+                    }
+                ],
             }
-        ]
-    }))
+        )
+    )
     out_preset = tmp_path / "calibrated_05b.json"
 
     result = runner.invoke(
         app,
-        ["calibrate", "--servebench-result", str(dummy_bench), "--output-preset", str(out_preset)],
+        [
+            "calibrate",
+            "--servebench-result",
+            str(dummy_bench),
+            "--output-preset",
+            str(out_preset),
+        ],
     )
     assert result.exit_code == 0
     assert "Loaded servebench benchmark data" in result.output
@@ -121,9 +148,16 @@ def test_cli_calibrate_nested_levels_and_run(tmp_path):
     # Verify sched-sim run can consume the custom json profile directly
     run_result = runner.invoke(
         app,
-        ["run", "--hardware", str(out_preset), "--duration", "1", "--rate", "2", "--no-gantt"],
+        [
+            "run",
+            "--hardware",
+            str(out_preset),
+            "--duration",
+            "1",
+            "--rate",
+            "2",
+            "--no-gantt",
+        ],
     )
     assert run_result.exit_code == 0
     assert "Execution Telemetry" in run_result.output
-
-

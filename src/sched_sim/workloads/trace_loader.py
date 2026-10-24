@@ -2,6 +2,7 @@
 
 import json
 from pathlib import Path
+
 from sched_sim.core.request import Request
 
 
@@ -23,7 +24,12 @@ def load_trace_file(file_path: str | Path) -> list[Request]:
     if isinstance(data, list):
         for idx, item in enumerate(data):
             req_id = item.get("id", item.get("request_id", f"trace_{idx:04d}"))
-            arrival = float(item.get("timestamp", item.get("arrived_at", item.get("arrival_time", idx * 0.1))))
+            arrival = float(
+                item.get(
+                    "timestamp",
+                    item.get("arrived_at", item.get("arrival_time", idx * 0.1)),
+                )
+            )
             prompt_len = int(item.get("prompt_tokens", item.get("input_tokens", 128)))
             output_len = int(item.get("output_tokens", 64))
             slo_ttft = item.get("slo_ttft", 0.5)

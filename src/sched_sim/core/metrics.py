@@ -1,7 +1,9 @@
 """Comprehensive latency, throughput, and SLO metrics calculation for simulation runs."""
 
 import math
-from pydantic import BaseModel, Field
+
+from pydantic import BaseModel
+
 from sched_sim.core.request import Request, RequestState
 
 
@@ -74,7 +76,9 @@ def compute_metrics(
 
     ttft_list = sorted([r.ttft * 1000.0 for r in completed if r.ttft is not None])
     tpot_list = sorted([r.tpot * 1000.0 for r in completed if r.tpot is not None])
-    e2e_list = sorted([r.e2e_latency * 1000.0 for r in completed if r.e2e_latency is not None])
+    e2e_list = sorted(
+        [r.e2e_latency * 1000.0 for r in completed if r.e2e_latency is not None]
+    )
 
     def calc_percentiles(arr: list[float]) -> Percentiles:
         if not arr:
@@ -94,7 +98,9 @@ def compute_metrics(
     throughput_req_s = (len(completed) / duration_s) if duration_s > 0 else 0.0
 
     # Goodput
-    slo_evaluated = [r for r in completed if r.slo_ttft is not None or r.slo_tpot is not None]
+    slo_evaluated = [
+        r for r in completed if r.slo_ttft is not None or r.slo_tpot is not None
+    ]
     if slo_evaluated:
         goodput = sum(1 for r in slo_evaluated if r.slo_met) / len(slo_evaluated)
     else:
@@ -103,7 +109,11 @@ def compute_metrics(
     preemptions = sum(r.preemptions_count for r in all_requests)
     recomputed = sum(r.recomputed_tokens for r in all_requests)
     gpu_util = (gpu_busy_time_s / duration_s * 100.0) if duration_s > 0 else 0.0
-    avg_batch = (sum(iteration_batch_sizes) / len(iteration_batch_sizes)) if iteration_batch_sizes else 0.0
+    avg_batch = (
+        (sum(iteration_batch_sizes) / len(iteration_batch_sizes))
+        if iteration_batch_sizes
+        else 0.0
+    )
 
     return SimulationMetrics(
         scheduler_name=scheduler_name,

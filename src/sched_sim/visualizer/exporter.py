@@ -1,8 +1,7 @@
 """Export simulation metrics to JSON, CSV, and Markdown formats."""
 
-import csv
-import json
 from pathlib import Path
+
 from sched_sim.core.metrics import SimulationMetrics
 
 
@@ -13,7 +12,9 @@ def export_metrics_json(metrics: SimulationMetrics, output_path: str | Path) -> 
         f.write(metrics.model_dump_json(indent=2))
 
 
-def export_metrics_markdown(metrics: SimulationMetrics, output_path: str | Path) -> None:
+def export_metrics_markdown(
+    metrics: SimulationMetrics, output_path: str | Path
+) -> None:
     path = Path(output_path)
     path.parent.mkdir(parents=True, exist_ok=True)
     md = f"""# sched-sim Benchmark Report: {metrics.scheduler_name}

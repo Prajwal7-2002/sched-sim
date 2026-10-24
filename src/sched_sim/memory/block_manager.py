@@ -1,6 +1,7 @@
 """Simulated Paged KV-Cache memory allocator with block tables and swapping."""
 
 import math
+
 from sched_sim.core.request import Request
 from sched_sim.hardware.profile import HardwareProfile
 
@@ -21,13 +22,19 @@ class BlockManager:
         self.bytes_per_block = self.block_size * self.kv_bytes_per_token
 
         # Calculate available GPU VRAM for KV-cache after model weights and safety buffer
-        available_vram_gb = max(0.5, hardware.vram_gb - hardware.model_weights_gb - safety_buffer_gb)
+        available_vram_gb = max(
+            0.5, hardware.vram_gb - hardware.model_weights_gb - safety_buffer_gb
+        )
         available_vram_bytes = available_vram_gb * (1024**3)
-        self.total_gpu_blocks = max(16, int(available_vram_bytes // self.bytes_per_block))
+        self.total_gpu_blocks = max(
+            16, int(available_vram_bytes // self.bytes_per_block)
+        )
 
         # Calculate available CPU RAM blocks for swap preemption
         available_cpu_bytes = cpu_memory_gb * (1024**3)
-        self.total_cpu_blocks = max(64, int(available_cpu_bytes // self.bytes_per_block))
+        self.total_cpu_blocks = max(
+            64, int(available_cpu_bytes // self.bytes_per_block)
+        )
 
         # Free block pools
         self.free_gpu_blocks: list[int] = list(range(self.total_gpu_blocks))

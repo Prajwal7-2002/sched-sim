@@ -10,7 +10,9 @@ class RooflineLatencyModel:
         self.hardware = hardware
         self.bandwidth_bytes_s = hardware.memory_bandwidth_gb_s * 1e9
         self.compute_flops_s = hardware.effective_tflops * 1e12
-        self.weights_bytes = hardware.parameter_count_billions * 1e9 * hardware.dtype_bytes
+        self.weights_bytes = (
+            hardware.parameter_count_billions * 1e9 * hardware.dtype_bytes
+        )
         self.launch_overhead_s = hardware.kernel_launch_overhead_ms / 1000.0
 
     def compute_prefill_step_time(self, num_prefill_tokens: int) -> float:
@@ -22,7 +24,9 @@ class RooflineLatencyModel:
             return 0.0
 
         # FLOPs = 2 * params * tokens (standard transformer forward pass)
-        total_flops = 2.0 * (self.hardware.parameter_count_billions * 1e9) * num_prefill_tokens
+        total_flops = (
+            2.0 * (self.hardware.parameter_count_billions * 1e9) * num_prefill_tokens
+        )
         compute_time = total_flops / self.compute_flops_s
 
         # Weights memory streaming time
@@ -32,7 +36,9 @@ class RooflineLatencyModel:
         execution_time = max(memory_time, compute_time) + self.launch_overhead_s
         return execution_time
 
-    def compute_decode_step_time(self, batch_size: int, total_context_tokens: int) -> float:
+    def compute_decode_step_time(
+        self, batch_size: int, total_context_tokens: int
+    ) -> float:
         """Calculate forward pass execution time for autoregressive token decoding.
 
         Decode is memory-bandwidth bound: weights are streamed once from DRAM,
@@ -75,7 +81,9 @@ class RooflineLatencyModel:
         memory_time = total_bytes / self.bandwidth_bytes_s
 
         # FLOPs = 2 * params * (prefill_tokens + decode_tokens)
-        total_flops = 2.0 * (self.hardware.parameter_count_billions * 1e9) * total_tokens
+        total_flops = (
+            2.0 * (self.hardware.parameter_count_billions * 1e9) * total_tokens
+        )
         compute_time = total_flops / self.compute_flops_s
 
         execution_time = max(memory_time, compute_time) + self.launch_overhead_s
@@ -90,8 +98,12 @@ class RooflineLatencyModel:
             return 0.0
 
         tensor_bytes = num_tokens * self.hardware.kv_bytes_per_token
-        network_bytes_s = (self.hardware.network_bandwidth_gbps * 1e9) / 8.0  # bits to bytes
-        transfer_time = (tensor_bytes / network_bytes_s) + (self.hardware.network_latency_ms / 1000.0)
+        network_bytes_s = (
+            self.hardware.network_bandwidth_gbps * 1e9
+        ) / 8.0  # bits to bytes
+        transfer_time = (tensor_bytes / network_bytes_s) + (
+            self.hardware.network_latency_ms / 1000.0
+        )
         return transfer_time
 
     def compute_swap_time(self, num_blocks: int, block_size: int = 16) -> float:

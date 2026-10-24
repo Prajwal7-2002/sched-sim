@@ -2,8 +2,8 @@
 
 from sched_sim.core.event_engine import Simulator
 from sched_sim.core.request import Request, RequestState
-from sched_sim.hardware.presets import get_hardware_profile
 from sched_sim.hardware.latency_model import RooflineLatencyModel
+from sched_sim.hardware.presets import get_hardware_profile
 from sched_sim.memory.block_manager import BlockManager
 from sched_sim.memory.preemption import PreemptionHandler
 from sched_sim.schedulers.fcfs import FCFSScheduler

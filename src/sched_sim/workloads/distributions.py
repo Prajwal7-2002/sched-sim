@@ -1,6 +1,7 @@
 """Workload distribution presets representing realistic serving domains."""
 
 import random
+
 from pydantic import BaseModel
 
 

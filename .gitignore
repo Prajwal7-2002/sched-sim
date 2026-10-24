@@ -43,6 +43,8 @@ htmlcov/
 results/
 *.json
 !traces/*.json
+!presets/*.json
+!benchmarks/*.json
 
 # Docs build
 site/

@@ -1,8 +1,8 @@
 """Predefined hardware and model configurations for realistic simulation."""
 
 from pathlib import Path
-from sched_sim.hardware.profile import HardwareProfile
 
+from sched_sim.hardware.profile import HardwareProfile
 
 PRESETS: dict[str, HardwareProfile] = {
     "rtx3050": HardwareProfile(
@@ -109,5 +109,5 @@ def get_hardware_profile(name_or_key: str) -> HardwareProfile:
     for k, v in PRESETS.items():
         if k == key or k.replace("_", "") == key:
             return v
-    # fallback
-    return PRESETS["rtx3050"]
+    # fallback to datacenter standard
+    return PRESETS["a100"]
