@@ -1,7 +1,9 @@
 """Abstract Base Scheduler interface and decision primitives."""
 
 from abc import ABC, abstractmethod
+
 from pydantic import BaseModel, Field
+
 from sched_sim.core.request import Request
 from sched_sim.hardware.latency_model import RooflineLatencyModel
 from sched_sim.memory.block_manager import BlockManager
@@ -57,17 +59,14 @@ class BaseScheduler(ABC):
     @abstractmethod
     def name(self) -> str:
         """Human-readable identifier of the scheduler policy."""
-        pass
 
     @abstractmethod
     def add_request(self, request: Request) -> None:
         """Enqueue an incoming request into the scheduler's waiting pool."""
-        pass
 
     @abstractmethod
     def schedule_iteration(self, current_time: float) -> SchedulingDecision:
         """Select which requests to prefill, which to decode, and execute memory checks."""
-        pass
 
     def has_pending_work(self) -> bool:
         """Returns True if there are requests currently queued or generating."""

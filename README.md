@@ -1,5 +1,7 @@
 # sched-sim ⏱️
 
+[![CI](https://github.com/Prajwal7-2002/sched-sim/actions/workflows/ci.yml/badge.svg)](https://github.com/Prajwal7-2002/sched-sim/actions)
+[![Docs](https://github.com/Prajwal7-2002/sched-sim/actions/workflows/docs.yml/badge.svg)](https://prajwal7-2002.github.io/sched-sim/)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.11%2B-blue)](https://www.python.org/)
 [![Hardware](https://img.shields.io/badge/CPU-100%25_Deterministic-green.svg)](#)
@@ -64,10 +66,12 @@ pip install -e .
 ```
 
 ### 1. Run a Simulation Scenario
-Simulate **Chunked Prefill** serving a long-context RAG workload on an **RTX 3050 6GB Laptop GPU**:
+Simulate **Chunked Prefill** serving a long-context RAG workload on an **NVIDIA A100 SXM4 (80GB)** cluster running Llama-3-8B:
 ```bash
-sched-sim run --scheduler chunked --workload rag --hardware rtx3050 --duration 10
+sched-sim run --scheduler chunked --workload rag --hardware a100 --duration 10
 ```
+
+> **Runs 100% on your CPU**: You do **not** need an A100 or any GPU to run `sched-sim`. It simulates hours of multi-GPU serving traffic in seconds on any standard CPU. The `--hardware` flag tells the discrete-event engine which cluster architecture to mathematically simulate (`a100`, `h100`, `t4`, `rtx3050`, or a custom JSON profile).
 
 ### 2. Compare Schedulers Side-by-Side (Identical Trace)
 Benchmark all 5 scheduling policies on the exact same Poisson arrival trace:
@@ -119,6 +123,27 @@ sched-sim info
 
 3. **Interconnect Transfer ($T_{\text{transfer}}$)**: Network serialization delay for PD Disaggregation:
    $$T_{\text{transfer}} = \frac{L_{\text{prompt}} \cdot \text{KV\_bytes\_per\_token}}{\text{Network Bandwidth}} + T_{\text{net\_latency}}$$
+
+---
+
+## 🔬 Empirical Silicon Validation (AMD Ryzen 5 6600H + NVIDIA RTX 3050 6GB)
+
+`sched-sim` is validated against ground-truth benchmarks collected by **[servebench](https://github.com/Prajwal7-2002/servebench)** testing **Qwen 2.5 0.5B** on both C++/CUDA and Python runtimes on physical silicon:
+
+| Target Serving Engine | Model | Metric | Real Hardware (`servebench`) | `sched-sim` Predicted | Variance |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Ollama (C++/CUDA runtime)** | Qwen 2.5 0.5B | **TTFT** | 44.33 ms | 47.81 ms | **7.9%** |
+| | | **TPOT** | 4.96 ms | 5.33 ms | **7.5%** |
+| | | **E2E** | 627.50 ms | 666.73 ms | **6.3%** |
+| **mini-infer (PyTorch eager runtime)** | Qwen 2.5 0.5B | **TTFT** | 121.80 ms | 140.60 ms | **15.4%** |
+| | | **TPOT** | 103.24 ms | 106.67 ms | **3.3%** |
+| | | **E2E** | 3322.29 ms | 3447.26 ms | **3.8%** |
+
+Run the reproducible validation suite yourself:
+```bash
+uv run python benchmarks/validate_flagships.py
+```
+Full methodology and analysis available in [benchmarks/RESULTS.md](benchmarks/RESULTS.md).
 
 ---
 

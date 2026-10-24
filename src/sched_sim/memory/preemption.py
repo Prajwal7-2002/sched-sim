@@ -1,6 +1,7 @@
 """Preemption policies: Recomputation vs. Host-DRAM Swapping."""
 
 from enum import Enum
+
 from sched_sim.core.request import Request, RequestState
 from sched_sim.hardware.latency_model import RooflineLatencyModel
 from sched_sim.memory.block_manager import BlockManager
@@ -38,16 +39,22 @@ class PreemptionHandler:
             return None, 0.0
 
         # Sort by decoded tokens ascending (victim is the least progressed)
-        victims = sorted(active_requests, key=lambda r: (r.decoded_tokens, -r.arrived_at))
+        victims = sorted(
+            active_requests, key=lambda r: (r.decoded_tokens, -r.arrived_at)
+        )
         victim = victims[0]
 
         victim.preemptions_count += 1
         victim.state = RequestState.PREEMPTED
 
         if self.mode == PreemptionMode.SWAP and self.block_manager.can_swap_out(victim):
-            num_blocks = len(self.block_manager.gpu_block_tables.get(victim.request_id, []))
+            num_blocks = len(
+                self.block_manager.gpu_block_tables.get(victim.request_id, [])
+            )
             self.block_manager.swap_out(victim)
-            swap_penalty = self.latency_model.compute_swap_time(num_blocks, self.block_manager.block_size)
+            swap_penalty = self.latency_model.compute_swap_time(
+                num_blocks, self.block_manager.block_size
+            )
             return victim, swap_penalty
         else:
             # Recompute fallback: discard KV blocks and record tokens that must be recomputed later

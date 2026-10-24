@@ -2,12 +2,11 @@
 
 import heapq
 from typing import Any
+
 from sched_sim.core.metrics import SimulationMetrics, compute_metrics
 from sched_sim.core.request import Request, RequestState
-from sched_sim.hardware.latency_model import RooflineLatencyModel
 from sched_sim.hardware.profile import HardwareProfile
-from sched_sim.memory.block_manager import BlockManager
-from sched_sim.memory.preemption import PreemptionHandler, PreemptionMode
+from sched_sim.memory.preemption import PreemptionMode
 from sched_sim.schedulers.base import BaseScheduler
 from sched_sim.schedulers.disaggregated import DisaggregatedScheduler
 
@@ -73,7 +72,9 @@ class Simulator:
 
     def add_event(self, timestamp: float, event_type: str, payload: Any = None) -> None:
         self.event_counter += 1
-        heapq.heappush(self.event_queue, (timestamp, self.event_counter, event_type, payload))
+        heapq.heappush(
+            self.event_queue, (timestamp, self.event_counter, event_type, payload)
+        )
 
     def submit_workload(self, requests: list[Request]) -> None:
         """Schedule arrivals for an entire batch of incoming requests."""
@@ -130,14 +131,20 @@ class Simulator:
         # Calculate forward pass execution time
         num_prefill = decision.total_prefill_tokens
         num_decode = decision.total_decode_requests
-        total_decode_context = sum(r.current_context_len for r in decision.decode_requests)
+        total_decode_context = sum(
+            r.current_context_len for r in decision.decode_requests
+        )
 
         if num_prefill > 0 and num_decode > 0:
-            step_time = self.latency_model.compute_mixed_step_time(num_prefill, num_decode, total_decode_context)
+            step_time = self.latency_model.compute_mixed_step_time(
+                num_prefill, num_decode, total_decode_context
+            )
         elif num_prefill > 0:
             step_time = self.latency_model.compute_prefill_step_time(num_prefill)
         else:
-            step_time = self.latency_model.compute_decode_step_time(num_decode, total_decode_context)
+            step_time = self.latency_model.compute_decode_step_time(
+                num_decode, total_decode_context
+            )
 
         step_end_time = self.current_time + step_time
         self.gpu_busy_time_s += step_time

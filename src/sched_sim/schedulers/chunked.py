@@ -22,7 +22,9 @@ class ChunkedPrefillScheduler(BaseScheduler):
         max_batch_size: int = 32,
         max_token_budget: int = 512,
     ):
-        super().__init__(block_manager, latency_model, preemption_handler, max_batch_size)
+        super().__init__(
+            block_manager, latency_model, preemption_handler, max_batch_size
+        )
         self.max_token_budget = max_token_budget
         self.prefill_in_progress: list[Request] = []
 
@@ -112,4 +114,9 @@ class ChunkedPrefillScheduler(BaseScheduler):
         return decision
 
     def has_pending_work(self) -> bool:
-        return bool(self.waiting_queue or self.running_batch or self.prefill_in_progress or self.swapped_queue)
+        return bool(
+            self.waiting_queue
+            or self.running_batch
+            or self.prefill_in_progress
+            or self.swapped_queue
+        )

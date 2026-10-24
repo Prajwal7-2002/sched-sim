@@ -1,8 +1,9 @@
 """Synthetic workload arrival generator supporting Poisson, Bursty, and Constant traffic."""
 
 import random
+
 from sched_sim.core.request import Request
-from sched_sim.workloads.distributions import DISTRIBUTIONS, DistributionPreset
+from sched_sim.workloads.distributions import DISTRIBUTIONS
 
 
 def generate_workload(
@@ -25,8 +26,6 @@ def generate_workload(
     requests: list[Request] = []
     current_time = 0.0
     req_index = 0
-
-    preset_keys = list(DISTRIBUTIONS.keys())
 
     while current_time < duration_s:
         # Determine inter-arrival delta

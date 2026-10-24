@@ -10,7 +10,9 @@ def test_block_allocation_and_free():
     bm = BlockManager(hw, block_size=16)
 
     initial_free = bm.num_free_gpu_blocks
-    req = Request(request_id="req_test", arrived_at=0.0, prompt_tokens=35, output_tokens=10)
+    req = Request(
+        request_id="req_test", arrived_at=0.0, prompt_tokens=35, output_tokens=10
+    )
 
     # 35 tokens require ceil(35 / 16) = 3 blocks
     assert bm.can_allocate(req, 35)
@@ -27,7 +29,9 @@ def test_append_token_block_expansion():
     hw = get_hardware_profile("rtx3050")
     bm = BlockManager(hw, block_size=16)
 
-    req = Request(request_id="req_expand", arrived_at=0.0, prompt_tokens=15, output_tokens=5)
+    req = Request(
+        request_id="req_expand", arrived_at=0.0, prompt_tokens=15, output_tokens=5
+    )
     bm.allocate(req, 15)  # 1 block allocated (holds 16)
     initial_blocks = len(bm.gpu_block_tables[req.request_id])
     assert initial_blocks == 1
@@ -48,7 +52,9 @@ def test_swapping_to_cpu():
     hw = get_hardware_profile("rtx3050")
     bm = BlockManager(hw, block_size=16)
 
-    req = Request(request_id="req_swap", arrived_at=0.0, prompt_tokens=32, output_tokens=10)
+    req = Request(
+        request_id="req_swap", arrived_at=0.0, prompt_tokens=32, output_tokens=10
+    )
     bm.allocate(req, 32)
     assert len(bm.gpu_block_tables[req.request_id]) == 2
 

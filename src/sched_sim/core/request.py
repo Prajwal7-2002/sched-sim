@@ -1,6 +1,7 @@
 """Request data models and lifecycle tracking for LLM serving simulation."""
 
 from enum import Enum
+
 from pydantic import BaseModel, Field
 
 
@@ -74,8 +75,15 @@ class Request(BaseModel):
     @property
     def tpot(self) -> float | None:
         """Time-Per-Output-Token in seconds per token."""
-        if self.decoded_tokens > 1 and self.completed_at is not None and self.first_token_at is not None:
-            return max(0.0, (self.completed_at - self.first_token_at) / (self.decoded_tokens - 1))
+        if (
+            self.decoded_tokens > 1
+            and self.completed_at is not None
+            and self.first_token_at is not None
+        ):
+            return max(
+                0.0,
+                (self.completed_at - self.first_token_at) / (self.decoded_tokens - 1),
+            )
         elif self.decoded_tokens == 1 and self.ttft is not None:
             return self.ttft
         return None

@@ -2,14 +2,13 @@
 
 from sched_sim.core.event_engine import Simulator
 from sched_sim.core.request import Request, RequestState
-from sched_sim.hardware.presets import get_hardware_profile
 from sched_sim.hardware.latency_model import RooflineLatencyModel
+from sched_sim.hardware.presets import get_hardware_profile
 from sched_sim.memory.block_manager import BlockManager
 from sched_sim.memory.preemption import PreemptionHandler
-from sched_sim.schedulers.fcfs import FCFSScheduler
+from sched_sim.schedulers.disaggregated import DisaggregatedScheduler
 from sched_sim.schedulers.sjf import SJFScheduler
 from sched_sim.schedulers.slo_aware import SLOAwareScheduler
-from sched_sim.schedulers.disaggregated import DisaggregatedScheduler
 
 
 def test_sjf_prioritizes_shorter_prompts():
@@ -17,8 +16,12 @@ def test_sjf_prioritizes_shorter_prompts():
 
     # Request 1: Long prompt (1000 tokens)
     # Request 2: Short prompt (50 tokens) - both arrive at time 0
-    req_long = Request(request_id="long", arrived_at=0.0, prompt_tokens=1000, output_tokens=5)
-    req_short = Request(request_id="short", arrived_at=0.0, prompt_tokens=50, output_tokens=5)
+    req_long = Request(
+        request_id="long", arrived_at=0.0, prompt_tokens=1000, output_tokens=5
+    )
+    req_short = Request(
+        request_id="short", arrived_at=0.0, prompt_tokens=50, output_tokens=5
+    )
 
     bm = BlockManager(hw)
     lm = RooflineLatencyModel(hw)
@@ -64,7 +67,9 @@ def test_disaggregated_scheduler():
     disagg = DisaggregatedScheduler(bm, lm, ph, max_batch_size=4)
     sim = Simulator(hw, disagg)
 
-    req = Request(request_id="req_pd", arrived_at=0.0, prompt_tokens=200, output_tokens=10)
+    req = Request(
+        request_id="req_pd", arrived_at=0.0, prompt_tokens=200, output_tokens=10
+    )
     sim.submit_workload([req])
     metrics = sim.run()
 
