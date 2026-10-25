@@ -41,6 +41,7 @@ htmlcov/
 
 # Local results
 results/
+examples/output/
 *.json
 !traces/*.json
 !presets/*.json

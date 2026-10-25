@@ -99,6 +99,22 @@ sched-sim info
 
 ---
 
+## 💡 Runnable Python Examples
+
+Explore self-contained runnable scripts under [`examples/`](examples/):
+
+* **[`examples/01_radix_prefix_caching.py`](examples/01_radix_prefix_caching.py)**: SGLang-style Radix tree prefix caching, prompt matching, and zero-copy block sharing.
+* **[`examples/02_simulate_schedulers.py`](examples/02_simulate_schedulers.py)**: Side-by-side simulation comparing FCFS vs Cache-Aware scheduling on shared RAG contexts (69.5% TTFT reduction).
+* **[`examples/03_perfetto_trace_export.py`](examples/03_perfetto_trace_export.py)**: Programmatic execution and Catapult JSON trace export for [ui.perfetto.dev](https://ui.perfetto.dev).
+
+```bash
+python examples/01_radix_prefix_caching.py
+python examples/02_simulate_schedulers.py
+python examples/03_perfetto_trace_export.py
+```
+
+---
+
 ## 🔬 The 6 Core Schedulers
 
 | Scheduler | Architecture & Policy | Key Trade-Off |
