@@ -9,18 +9,9 @@ from rich.console import Console
 from rich.table import Table
 
 from sched_sim.core.event_engine import Simulator
-from sched_sim.hardware.latency_model import RooflineLatencyModel
 from sched_sim.hardware.presets import PRESETS, get_hardware_profile
-from sched_sim.hardware.profile import HardwareProfile
-from sched_sim.memory.block_manager import BlockManager
-from sched_sim.memory.preemption import PreemptionHandler, PreemptionMode
-from sched_sim.schedulers.base import BaseScheduler
-from sched_sim.schedulers.cache_aware import CacheAwareScheduler
-from sched_sim.schedulers.chunked import ChunkedPrefillScheduler
-from sched_sim.schedulers.disaggregated import DisaggregatedScheduler
-from sched_sim.schedulers.fcfs import FCFSScheduler
-from sched_sim.schedulers.sjf import SJFScheduler
-from sched_sim.schedulers.slo_aware import SLOAwareScheduler
+from sched_sim.memory.preemption import PreemptionMode
+from sched_sim.schedulers.factory import create_scheduler
 from sched_sim.visualizer.exporter import export_metrics_json, export_metrics_markdown
 from sched_sim.visualizer.gantt import print_gantt_timeline
 from sched_sim.visualizer.perfetto import export_perfetto_trace
@@ -38,55 +29,6 @@ app = typer.Typer(
     add_completion=False,
 )
 console = Console()
-
-
-def create_scheduler(
-    name: str,
-    hardware: HardwareProfile,
-    preemption_mode: PreemptionMode = PreemptionMode.RECOMPUTE,
-    token_budget: int = 512,
-    max_batch_size: int = 32,
-    enable_prefix_caching: bool = False,
-) -> BaseScheduler:
-    """Factory creating configured scheduler instance."""
-    key = name.lower().replace("-", "").replace("_", "")
-    is_cache_aware = "cache" in key or "prefix" in key or "radix" in key
-    use_prefix_cache = enable_prefix_caching or is_cache_aware
-
-    block_manager = BlockManager(hardware, enable_prefix_caching=use_prefix_cache)
-    latency_model = RooflineLatencyModel(hardware)
-    preemption_handler = PreemptionHandler(
-        block_manager, latency_model, preemption_mode
-    )
-
-    if is_cache_aware:
-        return CacheAwareScheduler(
-            block_manager, latency_model, preemption_handler, max_batch_size
-        )
-    elif "chunk" in key:
-        return ChunkedPrefillScheduler(
-            block_manager,
-            latency_model,
-            preemption_handler,
-            max_batch_size=max_batch_size,
-            max_token_budget=token_budget,
-        )
-    elif "sjf" in key or "shortest" in key:
-        return SJFScheduler(
-            block_manager, latency_model, preemption_handler, max_batch_size
-        )
-    elif "slo" in key or "deadline" in key:
-        return SLOAwareScheduler(
-            block_manager, latency_model, preemption_handler, max_batch_size
-        )
-    elif "disagg" in key or "distserve" in key or "splitwise" in key:
-        return DisaggregatedScheduler(
-            block_manager, latency_model, preemption_handler, max_batch_size
-        )
-    else:
-        return FCFSScheduler(
-            block_manager, latency_model, preemption_handler, max_batch_size
-        )
 
 
 @app.command()
