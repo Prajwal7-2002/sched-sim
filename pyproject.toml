@@ -4,7 +4,7 @@ build-backend = "uv_build"
 
 [project]
 name = "sched-sim"
-version = "0.2.0"
+version = "0.2.1"
 description = "High-fidelity discrete-event simulator for LLM serving schedulers (FCFS, SJF, Chunked Prefill, Radix Prefix Caching, SLO-Aware, Disaggregated)."
 readme = "README.md"
 license = "Apache-2.0"
