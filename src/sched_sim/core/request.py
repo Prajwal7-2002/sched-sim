@@ -41,6 +41,42 @@ class Request(BaseModel):
     recomputed_tokens: int = 0
     swapped_blocks_count: int = 0
 
+    # Prefix Caching support
+    prompt_token_ids: list[int] = Field(default_factory=list)
+    prefix_key: str | None = None
+    shared_prefix_tokens: int = 0
+    cached_prefix_tokens: int = 0
+
+    def get_token_ids(self) -> list[int]:
+        """Returns the token ID sequence for prefix matching in Radix tree.
+
+        If explicit prompt_token_ids are provided, returns them.
+        If prefix_key is set, generates deterministic pseudo-tokens
+        shared across all requests with that prefix_key.
+        Otherwise, returns a deterministic unique sequence for this request.
+        """
+        if self.prompt_token_ids:
+            return self.prompt_token_ids
+
+        if self.prefix_key:
+            shared_len = (
+                self.shared_prefix_tokens
+                if self.shared_prefix_tokens > 0
+                else self.prompt_tokens
+            )
+            base_id = (hash(self.prefix_key) & 0x7FFFFFFF) % 100000
+            req_hash = (hash(self.request_id) & 0x7FFFFFFF) % 100000
+            shared_count = min(self.prompt_tokens, shared_len)
+            tokens = [base_id + (i % 2000) for i in range(shared_count)]
+            if len(tokens) < self.prompt_tokens:
+                tokens.extend(
+                    req_hash + i for i in range(self.prompt_tokens - len(tokens))
+                )
+            return tokens
+
+        req_hash = (hash(self.request_id) & 0x7FFFFFFF) % 100000
+        return [req_hash + i for i in range(self.prompt_tokens)]
+
     @property
     def total_tokens(self) -> int:
         return self.prompt_tokens + self.output_tokens

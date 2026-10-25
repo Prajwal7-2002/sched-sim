@@ -93,7 +93,36 @@ sched-sim sweep --schedulers fcfs,chunked,slo --hardware rtx3050 --min-rate 2 --
 
 ---
 
-## 7. Systems Glossary
+## 7. Radix Prefix Caching (RadixAttention)
+
+Modern agent loops, multi-turn chatbots, and RAG architectures repeatedly resend identical system instructions or document chunks. Recomputing KV activations for identical tokens on every request is an enormous waste of GPU compute.
+
+### How Radix Prefix Caching Works:
+1. **Chained 16-Token Block Hashing**:
+   Tokens are chunked into 16-token physical memory blocks. The hash of each block depends on the tokens within it and the hash of all preceding prefix blocks:
+   $$H_i = \text{hash}(H_{i-1}, \text{tokens}[16i : 16(i+1)])$$
+2. **Reference Counting**:
+   When multiple requests share the same prompt prefix, they share the exact physical GPU block table pointers. Each block maintains an active reference counter (`ref_count`).
+3. **Prefill Elimination & Near-Zero TTFT**:
+   Matched prefix tokens skip matrix multiplication entirely. A 1,024-token prompt hitting a 1,024-token cached prefix transitions immediately to decoding with $<5\text{ ms}$ TTFT.
+4. **LRU Eviction**:
+   When a request completes, its cached blocks are retained in memory. If VRAM runs low, the cache evicts the Least-Recently-Used leaf blocks whose `ref_count == 0` and returns them to the free block pool.
+
+---
+
+## 8. Visualizing Execution with Perfetto
+
+Discrete forward passes can be exported in native Chromium Trace Event format:
+
+```bash
+sched-sim run --scheduler cache_aware --workload rag --hardware a100 --trace-out trace.json
+```
+
+Load `trace.json` into **[ui.perfetto.dev](https://ui.perfetto.dev)** to inspect GPU slices, request timelines, and KV-cache utilization curves down to the microsecond.
+
+---
+
+## 9. Systems Glossary
 
 | Term | Definition |
 | :--- | :--- |
@@ -104,3 +133,4 @@ sched-sim sweep --schedulers fcfs,chunked,slo --hardware rtx3050 --min-rate 2 --
 | **MFU** | **Model FLOPs Utilization**: Ratio of achieved compute operations to theoretical Tensor Core peak. |
 | **Goodput** | The percentage of successfully served requests that satisfied both TTFT and TPOT SLO deadlines. |
 | **Disaggregation**| Separating Prefill and Decode phases onto separate GPU pools connected by a fast network link (Splitwise/DistServe). |
+| **Radix Cache** | Prefix tree data structure that shares physical KV-cache blocks across requests with common token prefixes. |
