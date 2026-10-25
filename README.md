@@ -199,6 +199,12 @@ uv run pytest
 
 ---
 
+## 🤝 Contributing
+
+Contributions from systems engineers and researchers are welcome! Check out the [Contributing Guide](CONTRIBUTING.md) for architectural invariants, testing standards, and high-impact areas where we need help (new scheduling policies, modern hardware presets, and interconnect topologies).
+
+---
+
 ## 📄 License
 
 Apache 2.0. See [LICENSE](LICENSE) for details.
