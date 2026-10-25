@@ -4,6 +4,7 @@ import math
 
 from sched_sim.core.request import Request
 from sched_sim.hardware.profile import HardwareProfile
+from sched_sim.memory.prefix_cache import PrefixCache
 
 
 class BlockManager:
@@ -15,11 +16,16 @@ class BlockManager:
         block_size: int = 16,
         safety_buffer_gb: float = 0.5,
         cpu_memory_gb: float = 32.0,
+        enable_prefix_caching: bool = False,
     ):
         self.hardware = hardware
         self.block_size = block_size
         self.kv_bytes_per_token = hardware.kv_bytes_per_token
         self.bytes_per_block = self.block_size * self.kv_bytes_per_token
+        self.enable_prefix_caching = enable_prefix_caching
+        self.prefix_cache: PrefixCache | None = (
+            PrefixCache(block_size=self.block_size) if enable_prefix_caching else None
+        )
 
         # Calculate available GPU VRAM for KV-cache after model weights and safety buffer
         available_vram_gb = max(
@@ -67,16 +73,60 @@ class BlockManager:
 
     def can_allocate(self, request: Request, additional_tokens: int) -> bool:
         """Check if GPU VRAM has enough free blocks for the requested token expansion."""
+        if (
+            self.enable_prefix_caching
+            and self.prefix_cache
+            and request.request_id not in self.gpu_block_tables
+        ):
+            tokens = request.get_token_ids()
+            matched_blocks, _ = self.prefix_cache.match_prefix(tokens)
+            needed_total = self.blocks_required(
+                request.current_context_len + additional_tokens
+            )
+            needed_fresh = max(0, needed_total - len(matched_blocks))
+            evictable = sum(
+                1 for n in self.prefix_cache.node_map.values() if n.is_evictable
+            )
+            return (len(self.free_gpu_blocks) + evictable) >= needed_fresh
+
         current_blocks = len(self.gpu_block_tables.get(request.request_id, []))
         total_tokens = request.current_context_len + additional_tokens
         needed_blocks = self.blocks_required(total_tokens)
         new_blocks = max(0, needed_blocks - current_blocks)
         return len(self.free_gpu_blocks) >= new_blocks
 
-    def allocate(self, request: Request, initial_tokens: int) -> bool:
+    def allocate(
+        self, request: Request, initial_tokens: int, current_time: float = 0.0
+    ) -> bool:
         """Allocate initial physical blocks for a new request."""
         req_id = request.request_id
         if req_id in self.gpu_block_tables:
+            return True
+
+        if self.enable_prefix_caching and self.prefix_cache:
+            matched_blocks = self.prefix_cache.acquire_prefix(request, current_time)
+            cached_tokens = len(matched_blocks) * self.block_size
+            request.cached_prefix_tokens = min(cached_tokens, request.prompt_tokens)
+            request.prefilled_tokens = request.cached_prefix_tokens
+
+            needed_total = self.blocks_required(initial_tokens)
+            needed_fresh = max(0, needed_total - len(matched_blocks))
+
+            if len(self.free_gpu_blocks) < needed_fresh:
+                deficit = needed_fresh - len(self.free_gpu_blocks)
+                freed = self.prefix_cache.evict_lru(deficit)
+                self.free_gpu_blocks.extend(freed)
+
+            if len(self.free_gpu_blocks) < needed_fresh:
+                self.prefix_cache.release_request(req_id)
+                return False
+
+            new_blocks = [self.free_gpu_blocks.pop() for _ in range(needed_fresh)]
+            all_blocks = matched_blocks + new_blocks
+            self.gpu_block_tables[req_id] = all_blocks
+
+            tokens = request.get_token_ids()
+            self.prefix_cache.insert_blocks(req_id, tokens, all_blocks, current_time)
             return True
 
         needed = self.blocks_required(initial_tokens)
@@ -101,6 +151,14 @@ class BlockManager:
         needed_blocks = self.blocks_required(current_tokens + 1)
 
         if needed_blocks > current_blocks:
+            if (
+                not self.free_gpu_blocks
+                and self.enable_prefix_caching
+                and self.prefix_cache
+            ):
+                freed = self.prefix_cache.evict_lru(1)
+                self.free_gpu_blocks.extend(freed)
+
             if not self.free_gpu_blocks:
                 return False  # OOM / need preemption
             new_block = self.free_gpu_blocks.pop()
@@ -109,12 +167,20 @@ class BlockManager:
         return True
 
     def free(self, request: Request) -> None:
-        """Free all physical blocks assigned to this request across GPU and CPU."""
+        """Free physical blocks assigned to this request across GPU and CPU."""
         req_id = request.request_id
-        if req_id in self.gpu_block_tables:
-            for b in self.gpu_block_tables[req_id]:
-                self.free_gpu_blocks.append(b)
-            del self.gpu_block_tables[req_id]
+        if self.enable_prefix_caching and self.prefix_cache:
+            self.prefix_cache.release_request(req_id)
+            if req_id in self.gpu_block_tables:
+                for b in self.gpu_block_tables[req_id]:
+                    if b not in self.prefix_cache.node_map:
+                        self.free_gpu_blocks.append(b)
+                del self.gpu_block_tables[req_id]
+        else:
+            if req_id in self.gpu_block_tables:
+                for b in self.gpu_block_tables[req_id]:
+                    self.free_gpu_blocks.append(b)
+                del self.gpu_block_tables[req_id]
 
         if req_id in self.cpu_block_tables:
             for b in self.cpu_block_tables[req_id]:

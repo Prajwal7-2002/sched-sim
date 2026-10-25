@@ -99,15 +99,31 @@ sched-sim info
 
 ---
 
-## 🔬 The 5 Core Schedulers
+## 🔬 The 6 Core Schedulers
 
 | Scheduler | Architecture & Policy | Key Trade-Off |
 | :--- | :--- | :--- |
-| **`FCFS`** | First-Come First-Served continuous batching with atomic prefills. | Simple, but large prompts cause Head-of-Line blocking and decode starvation. |
-| **`SJF`** | Shortest-Job-First (shortest prompt first). | Minimizes average waiting time and mean TTFT, but starves heavy RAG prompts. |
+| **`Cache-Aware`** | **Radix-Tree prefix caching** (SGLang / vLLM APC). Shares physical 16-token KV blocks with LRU eviction and prefix-affinity prioritization. | **Near-zero TTFT** for RAG, multi-turn chat, and shared system prompts. |
 | **`Chunked`** | Token budgeting (Sarathi-Serve / vLLM). Slices prompt prefills into 512-token chunks. | Eliminates TPOT latency spikes and ensures steady iteration times. |
 | **`SLO-Aware`** | Dynamic deadline scheduling (EDF) with selective dropping of unrecoverable requests. | Maximizes **Goodput** (% of requests meeting both TTFT and TPOT SLOs). |
 | **`Disaggregated`**| Splitwise / DistServe architecture: separates compute-bound Prefill workers from memory-bound Decode workers. | Zero decode interference; models KV-cache interconnect transfer delay. |
+| **`SJF`** | Shortest-Job-First (shortest prompt first). | Minimizes average waiting time and mean TTFT, but starves heavy RAG prompts. |
+| **`FCFS`** | First-Come First-Served continuous batching with atomic prefills. | Simple, but large prompts cause Head-of-Line blocking and decode starvation. |
+
+---
+
+## 🎨 Interactive Perfetto / Chromium Timeline Visualization
+
+Export native Chromium / Catapult Trace Event JSON files and inspect discrete forward-pass iteration slices and per-request lifecycles in **[ui.perfetto.dev](https://ui.perfetto.dev)**:
+
+```bash
+sched-sim run --scheduler cache_aware --workload rag --hardware a100 --trace-out trace.json
+```
+
+Drag and drop `trace.json` directly into **Perfetto** to visually analyze:
+- **Prefill vs. Decode vs. Mixed Slices**: Microsecond-accurate forward pass durations on the GPU accelerator.
+- **Request Streams**: Exact arrival, TTFT first-token timestamps, and completion times.
+- **Counter Tracks**: Real-time GPU KV-cache memory utilization (%) and concurrent batch stream counts.
 
 ---
 

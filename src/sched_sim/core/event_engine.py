@@ -141,10 +141,13 @@ class Simulator:
             )
         elif num_prefill > 0:
             step_time = self.latency_model.compute_prefill_step_time(num_prefill)
-        else:
+        elif num_decode > 0:
             step_time = self.latency_model.compute_decode_step_time(
                 num_decode, total_decode_context
             )
+        else:
+            # 100% prefix cache hit with no active decodes: only cache lookup / launch overhead
+            step_time = max(0.0005, self.latency_model.launch_overhead_s)
 
         step_end_time = self.current_time + step_time
         self.gpu_busy_time_s += step_time

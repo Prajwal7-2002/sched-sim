@@ -48,3 +48,7 @@ results/
 
 # Docs build
 site/
+
+# Personal study notes, not part of the repo
+decisions.md
+flow.md

@@ -15,6 +15,7 @@ from sched_sim.hardware.profile import HardwareProfile
 from sched_sim.memory.block_manager import BlockManager
 from sched_sim.memory.preemption import PreemptionHandler, PreemptionMode
 from sched_sim.schedulers.base import BaseScheduler
+from sched_sim.schedulers.cache_aware import CacheAwareScheduler
 from sched_sim.schedulers.chunked import ChunkedPrefillScheduler
 from sched_sim.schedulers.disaggregated import DisaggregatedScheduler
 from sched_sim.schedulers.fcfs import FCFSScheduler
@@ -22,6 +23,7 @@ from sched_sim.schedulers.sjf import SJFScheduler
 from sched_sim.schedulers.slo_aware import SLOAwareScheduler
 from sched_sim.visualizer.exporter import export_metrics_json, export_metrics_markdown
 from sched_sim.visualizer.gantt import print_gantt_timeline
+from sched_sim.visualizer.perfetto import export_perfetto_trace
 from sched_sim.visualizer.terminal import (
     print_comparison_table,
     print_single_run_summary,
@@ -44,16 +46,24 @@ def create_scheduler(
     preemption_mode: PreemptionMode = PreemptionMode.RECOMPUTE,
     token_budget: int = 512,
     max_batch_size: int = 32,
+    enable_prefix_caching: bool = False,
 ) -> BaseScheduler:
     """Factory creating configured scheduler instance."""
-    block_manager = BlockManager(hardware)
+    key = name.lower().replace("-", "").replace("_", "")
+    is_cache_aware = "cache" in key or "prefix" in key or "radix" in key
+    use_prefix_cache = enable_prefix_caching or is_cache_aware
+
+    block_manager = BlockManager(hardware, enable_prefix_caching=use_prefix_cache)
     latency_model = RooflineLatencyModel(hardware)
     preemption_handler = PreemptionHandler(
         block_manager, latency_model, preemption_mode
     )
 
-    key = name.lower().replace("-", "").replace("_", "")
-    if "chunk" in key:
+    if is_cache_aware:
+        return CacheAwareScheduler(
+            block_manager, latency_model, preemption_handler, max_batch_size
+        )
+    elif "chunk" in key:
         return ChunkedPrefillScheduler(
             block_manager,
             latency_model,
@@ -86,7 +96,7 @@ def run(
         typer.Option(
             "--scheduler",
             "-s",
-            help="Scheduler policy: fcfs, sjf, chunked, slo, disaggregated",
+            help="Scheduler policy: fcfs, sjf, chunked, slo, disaggregated, cache_aware",
         ),
     ] = "chunked",
     workload: Annotated[
@@ -125,6 +135,13 @@ def run(
     seed: Annotated[
         int, typer.Option("--seed", help="Random seed for deterministic simulation")
     ] = 42,
+    enable_prefix_cache: Annotated[
+        bool,
+        typer.Option(
+            "--prefix-cache/--no-prefix-cache",
+            help="Enable Radix prefix caching in KV-cache block manager",
+        ),
+    ] = False,
     gantt: Annotated[
         bool,
         typer.Option(
@@ -135,6 +152,13 @@ def run(
         Path | None,
         typer.Option("--output", "-o", help="Optional output path (.json or .md)"),
     ] = None,
+    trace_out: Annotated[
+        Path | None,
+        typer.Option(
+            "--trace-out",
+            help="Export Chromium / Perfetto JSON trace for https://ui.perfetto.dev",
+        ),
+    ] = None,
 ) -> None:
     """Run a single LLM serving simulation scenario."""
     hw = get_hardware_profile(hardware)
@@ -144,7 +168,13 @@ def run(
         else PreemptionMode.RECOMPUTE
     )
 
-    sched_instance = create_scheduler(scheduler, hw, p_mode, token_budget=token_budget)
+    sched_instance = create_scheduler(
+        scheduler,
+        hw,
+        p_mode,
+        token_budget=token_budget,
+        enable_prefix_caching=enable_prefix_cache,
+    )
     simulator = Simulator(hw, sched_instance, preemption_mode=p_mode)
 
     requests = generate_workload(
@@ -172,6 +202,14 @@ def run(
         elif output.suffix.lower() == ".md":
             export_metrics_markdown(metrics, output)
             console.print(f"\n[green]Saved Markdown report to {output}[/green]")
+
+    if trace_out:
+        export_perfetto_trace(
+            metrics, simulator.iteration_records, simulator.all_requests, trace_out
+        )
+        console.print(
+            f"\n[green]Saved Perfetto trace to {trace_out} (load at https://ui.perfetto.dev)[/green]"
+        )
 
 
 @app.command()
@@ -258,13 +296,32 @@ def trace(
     token_budget: Annotated[
         int, typer.Option("--token-budget", help="Chunked prefill budget")
     ] = 512,
+    enable_prefix_cache: Annotated[
+        bool,
+        typer.Option(
+            "--prefix-cache/--no-prefix-cache",
+            help="Enable Radix prefix caching in KV-cache block manager",
+        ),
+    ] = False,
     gantt: Annotated[
         bool, typer.Option("--gantt/--no-gantt", help="Show Gantt timeline")
     ] = True,
+    trace_out: Annotated[
+        Path | None,
+        typer.Option(
+            "--trace-out",
+            help="Export Chromium / Perfetto JSON trace for https://ui.perfetto.dev",
+        ),
+    ] = None,
 ) -> None:
     """Replay a real-world trace file through the simulator."""
     hw = get_hardware_profile(hardware)
-    sched_instance = create_scheduler(scheduler, hw, token_budget=token_budget)
+    sched_instance = create_scheduler(
+        scheduler,
+        hw,
+        token_budget=token_budget,
+        enable_prefix_caching=enable_prefix_cache,
+    )
     sim = Simulator(hw, sched_instance)
 
     requests = load_trace_file(trace_file)
@@ -277,6 +334,14 @@ def trace(
     if gantt and sim.iteration_records:
         console.print()
         print_gantt_timeline(sim.iteration_records, max_steps=12)
+
+    if trace_out:
+        export_perfetto_trace(
+            metrics, sim.iteration_records, sim.all_requests, trace_out
+        )
+        console.print(
+            f"\n[green]Saved Perfetto trace to {trace_out} (load at https://ui.perfetto.dev)[/green]"
+        )
 
 
 @app.command()
