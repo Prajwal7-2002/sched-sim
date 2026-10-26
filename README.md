@@ -1,6 +1,7 @@
 # sched-sim ⏱️
 
 [![CI](https://github.com/Prajwal7-2002/sched-sim/actions/workflows/ci.yml/badge.svg)](https://github.com/Prajwal7-2002/sched-sim/actions)
+[![PyPI](https://img.shields.io/pypi/v/sched-sim.svg?color=blue)](https://pypi.org/project/sched-sim/)
 [![Docs](https://github.com/Prajwal7-2002/sched-sim/actions/workflows/docs.yml/badge.svg)](https://prajwal7-2002.github.io/sched-sim/)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.11%2B-blue)](https://www.python.org/)
