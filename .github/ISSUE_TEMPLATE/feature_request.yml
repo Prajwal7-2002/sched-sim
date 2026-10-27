@@ -1,0 +1,44 @@
+name: "✨ Feature Request / Scheduler Proposal"
+description: "Suggest a new scheduling algorithm, roofline latency model, or trace visualizer"
+title: "[Feature]: "
+labels: ["enhancement", "proposal"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for proposing a feature for `sched-sim`! We welcome proposals for new serving schedulers, hardware presets, and simulation analysis tools.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Motivation / Use Case
+      description: What scheduler pattern or serving architecture does this explore?
+      placeholder: "We want to simulate dynamic prefill-decode disaggregation across 2 nodes..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed Architecture & Mathematical Model
+      description: Describe the scheduling logic and analytical delay mechanics.
+      placeholder: |
+        Implement a `DisaggregatedPrefillScheduler` that simulates KV-transfer delay over 400 Gbps RoCE v2...
+    validations:
+      required: true
+
+  - type: textarea
+    id: cpu_invariant
+    attributes:
+      label: 100% CPU-First Verification
+      description: Confirm this simulation can execute deterministically on standard CPUs.
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: willingness
+    attributes:
+      label: Contribution Readiness
+      options:
+        - label: I am willing to implement this feature and submit a PR.
+          required: false
