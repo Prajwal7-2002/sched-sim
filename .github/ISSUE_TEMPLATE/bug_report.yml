@@ -1,0 +1,62 @@
+name: "🐛 Bug Report"
+description: "Report a bug, inaccurate simulation result, or CLI error in sched-sim"
+title: "[Bug]: "
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for reporting an issue in `sched-sim`! Please ensure you are running the latest version.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description of the Bug
+      description: What went wrong during the simulation?
+      placeholder: "When running the CacheAwareScheduler with radix prefix caching enabled..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal Steps to Reproduce
+      description: Exact CLI command or Python simulation script.
+      placeholder: |
+        1. Run `sched-sim simulate --scheduler cache-aware --hardware h100-sxm ...`
+        2. Observe error or unexpected metric: ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: traceback
+    attributes:
+      label: Error Traceback / Logs
+      description: Terminal logs or Perfetto trace error.
+      render: shell
+    validations:
+      required: false
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment Diagnostics
+      description: Your local environment details.
+      placeholder: |
+        - OS: Windows 11 / Ubuntu 22.04 / macOS
+        - Python Version: (e.g. 3.12.10)
+        - sched-sim Version: (e.g. 0.2.0)
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: confirmation
+    attributes:
+      label: Validation Checklist
+      options:
+        - label: I have verified this bug occurs on the latest `main` branch or PyPI release.
+          required: true
+        - label: I have checked open/closed issues to avoid duplicates.
+          required: true
+        - label: I am willing to submit a Pull Request to fix this.
+          required: false
