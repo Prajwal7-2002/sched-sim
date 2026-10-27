@@ -466,7 +466,9 @@ def sweep(
             for key in scheduler_keys:
                 req_clones = [req.model_copy(deep=True) for req in base_requests]
                 try:
-                    sched_instance = create_scheduler(key, hw, token_budget=token_budget)
+                    sched_instance = create_scheduler(
+                        key, hw, token_budget=token_budget
+                    )
                 except KeyError as exc:
                     console.print(f"[bold red]Error:[/bold red] {exc}")
                     raise typer.Exit(1) from None
