@@ -110,13 +110,18 @@ def run(
         else PreemptionMode.RECOMPUTE
     )
 
-    sched_instance = create_scheduler(
-        scheduler,
-        hw,
-        p_mode,
-        token_budget=token_budget,
-        enable_prefix_caching=enable_prefix_cache,
-    )
+    try:
+        sched_instance = create_scheduler(
+            scheduler,
+            hw,
+            p_mode,
+            token_budget=token_budget,
+            enable_prefix_caching=enable_prefix_cache,
+        )
+    except KeyError as exc:
+        console.print(f"[bold red]Error:[/bold red] {exc}")
+        raise typer.Exit(1) from None
+
     simulator = Simulator(hw, sched_instance, preemption_mode=p_mode)
 
     requests = generate_workload(
@@ -212,7 +217,11 @@ def compare(
         for key in scheduler_keys:
             # Deep clone requests for fair isolation
             req_clones = [r.model_copy(deep=True) for r in base_requests]
-            sched_instance = create_scheduler(key, hw, token_budget=token_budget)
+            try:
+                sched_instance = create_scheduler(key, hw, token_budget=token_budget)
+            except KeyError as exc:
+                console.print(f"[bold red]Error:[/bold red] {exc}")
+                raise typer.Exit(1) from None
             sim = Simulator(hw, sched_instance)
             sim.submit_workload(req_clones)
             m = sim.run()
@@ -258,12 +267,16 @@ def trace(
 ) -> None:
     """Replay a real-world trace file through the simulator."""
     hw = get_hardware_profile(hardware)
-    sched_instance = create_scheduler(
-        scheduler,
-        hw,
-        token_budget=token_budget,
-        enable_prefix_caching=enable_prefix_cache,
-    )
+    try:
+        sched_instance = create_scheduler(
+            scheduler,
+            hw,
+            token_budget=token_budget,
+            enable_prefix_caching=enable_prefix_cache,
+        )
+    except KeyError as exc:
+        console.print(f"[bold red]Error:[/bold red] {exc}")
+        raise typer.Exit(1) from None
     sim = Simulator(hw, sched_instance)
 
     requests = load_trace_file(trace_file)
@@ -452,7 +465,11 @@ def sweep(
         ):
             for key in scheduler_keys:
                 req_clones = [req.model_copy(deep=True) for req in base_requests]
-                sched_instance = create_scheduler(key, hw, token_budget=token_budget)
+                try:
+                    sched_instance = create_scheduler(key, hw, token_budget=token_budget)
+                except KeyError as exc:
+                    console.print(f"[bold red]Error:[/bold red] {exc}")
+                    raise typer.Exit(1) from None
                 sim = Simulator(hw, sched_instance)
                 sim.submit_workload(req_clones)
                 m = sim.run()
