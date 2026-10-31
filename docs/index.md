@@ -12,7 +12,7 @@ While continuous batching and Paged KV-caching provide the mechanism for dynamic
 3. What happens when physical KV-cache memory runs out (swapping vs recomputation).
 4. When to disaggregate prefill and decode phases onto specialized GPU worker pools.
 
-Testing these policies on real GPU clusters (e.g. 8x H100 nodes) is **slow, noisy, and expensive ($20–$50/hr)**. `sched-sim` simulates hours of multi-GPU serving traffic in **seconds on any standard CPU**, using validated analytical performance models calibrated against empirical silicon measurements from **[servebench](https://github.com/Prajwal7-2002/servebench)** and **[mini-infer](https://github.com/Prajwal7-2002/mini-infer)**.
+Testing these policies on real GPU clusters (e.g. 8x H100 nodes) is **slow, noisy, and expensive (\$20–\$50/hr)**. `sched-sim` simulates hours of multi-GPU serving traffic in **seconds on any standard CPU**, using validated analytical performance models calibrated against empirical silicon measurements from **[servebench](https://github.com/Prajwal7-2002/servebench)** and **[mini-infer](https://github.com/Prajwal7-2002/mini-infer)**.
 
 ---
 

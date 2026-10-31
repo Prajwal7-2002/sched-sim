@@ -20,7 +20,7 @@ In modern inference clusters (vLLM, TGI, TensorRT-LLM, SGLang, DistServe), **the
 3. What happens when the physical KV-cache runs out of memory (swapping to CPU DRAM vs eviction and recomputation).
 4. When to disaggregate prefill and decode phases onto specialized GPU worker pools (Splitwise / DistServe architecture).
 
-Testing these policies on real GPU clusters (e.g. 8x H100 nodes) is **slow, noisy, and expensive ($20–$50/hr)**. `sched-sim` simulates hours of multi-GPU serving traffic in **seconds on any standard CPU**, using validated analytical performance models calibrated against empirical silicon measurements from **[servebench](https://github.com/Prajwal7-2002/servebench)** and **[mini-infer](https://github.com/Prajwal7-2002/mini-infer)**.
+Testing these policies on real GPU clusters (e.g. 8x H100 nodes) is **slow, noisy, and expensive (\$20–\$50/hr)**. `sched-sim` simulates hours of multi-GPU serving traffic in **seconds on any standard CPU**, using validated analytical performance models calibrated against empirical silicon measurements from **[servebench](https://github.com/Prajwal7-2002/servebench)** and **[mini-infer](https://github.com/Prajwal7-2002/mini-infer)**.
 
 ---
 
@@ -59,15 +59,19 @@ Testing these policies on real GPU clusters (e.g. 8x H100 nodes) is **slow, nois
 
 ## ⏱️ Quickstart in 30 Seconds
 
-### Install
+### Installation
+
 ```bash
-# Direct from source with uv (fastest)
+# Install via pip
+pip install sched-sim
+
+# Or via uv
+uv add sched-sim
+
+# Or direct from source for development
 git clone https://github.com/Prajwal7-2002/sched-sim.git
 cd sched-sim
 uv sync
-
-# Or with standard pip
-pip install -e .
 ```
 
 ### 1. Run a Simulation Scenario
