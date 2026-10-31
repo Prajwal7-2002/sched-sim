@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="./assets/banner.svg" alt="sched-sim banner" width="100%">
+</p>
+
 # sched-sim ⏱️
 
 [![CI](https://github.com/Prajwal7-2002/sched-sim/actions/workflows/ci.yml/badge.svg)](https://github.com/Prajwal7-2002/sched-sim/actions)
