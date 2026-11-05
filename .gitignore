@@ -53,3 +53,7 @@ site/
 # Personal study notes, not part of the repo
 decisions.md
 flow.md
+
+# Recorded validation data (see benchmarks/validate_flagships.py)
+!benchmarks/data/*.json
+!benchmarks/validation_results.json

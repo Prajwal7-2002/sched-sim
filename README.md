@@ -20,7 +20,7 @@ In modern inference clusters (vLLM, TGI, TensorRT-LLM, SGLang, DistServe), **the
 3. What happens when the physical KV-cache runs out of memory (swapping to CPU DRAM vs eviction and recomputation).
 4. When to disaggregate prefill and decode phases onto specialized GPU worker pools (Splitwise / DistServe architecture).
 
-Testing these policies on real GPU clusters (e.g. 8x H100 nodes) is **slow, noisy, and expensive (\$20–\$50/hr)**. `sched-sim` simulates hours of multi-GPU serving traffic in **seconds on any standard CPU**, using validated analytical performance models calibrated against empirical silicon measurements from **[servebench](https://github.com/Prajwal7-2002/servebench)** and **[mini-infer](https://github.com/Prajwal7-2002/mini-infer)**.
+Testing these policies on real GPU clusters (e.g. 8x H100 nodes) is **slow, noisy, and expensive (\$20–\$50/hr)**. `sched-sim` simulates hours of multi-GPU serving traffic in **seconds on any standard CPU**, using analytical performance models calibrated on, and checked out of sample against, real serving runs measured with **[servebench](https://github.com/Prajwal7-2002/servebench)** and **[mini-infer](https://github.com/Prajwal7-2002/mini-infer)**.
 
 ---
 
@@ -154,37 +154,50 @@ Drag and drop `trace.json` directly into **Perfetto** to visually analyze:
 
 ## 🛠️ Hardware Calibration (Analytical Roofline Model)
 
-`sched-sim` avoids arbitrary delays. It computes exact step latencies from first-principles roofline mechanics calibrated with empirical silicon data:
+`sched-sim` estimates each step's latency from roofline mechanics plus two measured engine overheads:
 
 1. **Prefill Latency ($T_{\text{prefill}}$)**: Compute-bound matrix multiplication:
    $$T_{\text{prefill}} = \max\left(\frac{2 \cdot P \cdot N}{\text{Effective TFLOPS}}, \frac{\text{Weights}}{\text{Bandwidth}}\right) + T_{\text{launch}}$$
 
 2. **Decode Latency ($T_{\text{decode}}$)**: Memory-bandwidth bound weight and KV-cache gather:
-   $$T_{\text{decode}} = \frac{P \cdot \text{dtype} + L_{\text{total}} \cdot \text{KV\_bytes\_per\_token}}{\text{DRAM Bandwidth (GB/s)}} + T_{\text{launch}}$$
+   $$T_{\text{decode}} = \max\left(\frac{P \cdot b_w + L_{\text{total}} \cdot \text{KV\_bytes\_per\_token}}{\text{DRAM Bandwidth}}, \frac{2 P B}{\text{Effective TFLOPS}}\right) + T_{\text{launch}} + B \cdot T_{\text{seq}}$$
+
+   $b_w$: bytes per weight (`weight_bytes_per_param`, e.g. ~0.6-0.8 for 4-bit GGUF; defaults to `dtype_bytes`). $T_{\text{seq}}$: per-sequence cost (`per_sequence_overhead_ms`: sampling, per-sequence attention and bookkeeping), so a batch of $B$ costs more than a batch of 1.
 
 3. **Interconnect Transfer ($T_{\text{transfer}}$)**: Network serialization delay for PD Disaggregation:
    $$T_{\text{transfer}} = \frac{L_{\text{prompt}} \cdot \text{KV\_bytes\_per\_token}}{\text{Network Bandwidth}} + T_{\text{net\_latency}}$$
 
 ---
 
-## 🔬 Empirical Silicon Validation (AMD Ryzen 5 6600H + NVIDIA RTX 3050 6GB)
+## 🔬 Validation Against Real Serving Runs (RTX 3050 6GB Laptop)
 
-`sched-sim` is validated against ground-truth benchmarks collected by **[servebench](https://github.com/Prajwal7-2002/servebench)** testing **Qwen 2.5 0.5B** on both C++/CUDA and Python runtimes on physical silicon:
+Measured with [servebench](https://github.com/Prajwal7-2002/servebench): closed loop at 1, 2 and 4 users, ~286-token prompts,
+128 output tokens, 24 requests per level. Raw data in [`benchmarks/data/`](benchmarks/data/); full table in
+[`benchmarks/RESULTS.md`](benchmarks/RESULTS.md).
 
-| Target Serving Engine | Model | Metric | Real Hardware (`servebench`) | `sched-sim` Predicted | Variance |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| **Ollama (C++/CUDA runtime)** | Qwen 2.5 0.5B | **TTFT** | 44.33 ms | 47.81 ms | **7.9%** |
-| | | **TPOT** | 4.96 ms | 5.33 ms | **7.5%** |
-| | | **E2E** | 627.50 ms | 666.73 ms | **6.3%** |
-| **mini-infer (PyTorch eager runtime)** | Qwen 2.5 0.5B | **TTFT** | 121.80 ms | 140.60 ms | **15.4%** |
-| | | **TPOT** | 103.24 ms | 106.67 ms | **3.3%** |
-| | | **E2E** | 3322.29 ms | 3447.26 ms | **3.8%** |
+**Method (out of sample).** Model architecture, bytes per weight and memory bandwidth (121.5 GB/s, measured with a
+device-to-device copy) are fixed inputs. Three engine constants (step overhead, per-sequence overhead, prefill efficiency)
+are fitted on the **smallest model's 1- and 2-user runs only**. Every other row is a prediction that used no data from
+that row. The simulator runs the same closed loop as servebench.
 
-Run the reproducible validation suite yourself:
-```bash
-uv run python benchmarks/validate_flagships.py
-```
-Full methodology and analysis available in [benchmarks/RESULTS.md](benchmarks/RESULTS.md).
+| Engine | Held-out rows | Decode TPOT error | Prefill TTFT error |
+| :--- | :--- | :--- | :--- |
+| **Ollama 0.35.1** (llama.cpp, 4-bit) | 0.5B at 4 users; 1.5B and 3B at 1/2/4 users | **within ±12% on 6 of 7 rows** (1.5B at 4 users: +84%) | +9% for 0.5B; **+34% to +100% for 1.5B/3B** |
+| **mini-infer 0.2.9** (PyTorch, bf16) | 0.5B at 4 users; 1.5B at 1/2/4 users | −13% to +28% (engine is CPU-bound and noisy) | **−56% to −69%** |
+
+What this tells you:
+* **Decode under batching is predicted well** for an efficient engine: one 0.5B calibration predicts the 3B model's
+  per-token latency within ±5% at every load.
+* **Prefill does not transfer across model sizes.** Prefill efficiency fitted on 0.5B (27% of peak) is too low for
+  larger models, whose bigger matrix multiplications use the GPU better, so TTFT is overpredicted. Calibrate prefill
+  on a model close in size to the one you simulate.
+* **The simulator assumes vLLM-style fused batches.** mini-infer prefills each waiting request in its own forward
+  pass, so real TTFT under load is much higher than the fused-batch prediction. Simulated scheduler comparisons are
+  only as good as that assumption for your engine.
+* Earlier versions showed 3-15% "validation errors" that were in-sample: the script derived bandwidth and launch
+  overhead from the same measured TPOT it then reported. That table has been replaced (v0.2.3).
+
+Reproduce: `uv run python benchmarks/validate_flagships.py` (CI runs the same check in `tests/test_validation_benchmark.py`).
 
 ---
 

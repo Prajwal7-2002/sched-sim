@@ -24,12 +24,25 @@ class HardwareProfile(BaseModel):
     num_heads: int = 12
     num_kv_heads: int = 2  # GQA (Grouped Query Attention)
     head_dim: int = 128
-    dtype_bytes: int = 2  # bfloat16 = 2 bytes
+    dtype_bytes: int = 2  # bfloat16 = 2 bytes (KV-cache and, by default, weights)
+    # Bytes per weight when weights are stored differently from the KV-cache, e.g. 4-bit
+    # GGUF (q4_k_m ~0.61). None means weights use dtype_bytes.
+    weight_bytes_per_param: float | None = None
+    # Extra decode cost per sequence in the batch (sampling, per-sequence attention and
+    # bookkeeping). 0 means a batch of N costs the same step time as a batch of 1.
+    per_sequence_overhead_ms: float = 0.0
+
+    @property
+    def bytes_per_weight(self) -> float:
+        """Bytes per model weight (weight_bytes_per_param if set, else dtype_bytes)."""
+        if self.weight_bytes_per_param is not None:
+            return self.weight_bytes_per_param
+        return float(self.dtype_bytes)
 
     @property
     def model_weights_gb(self) -> float:
         """Raw model weight memory in gigabytes."""
-        return (self.parameter_count_billions * 1e9 * self.dtype_bytes) / (1024**3)
+        return (self.parameter_count_billions * 1e9 * self.bytes_per_weight) / (1024**3)
 
     @property
     def kv_bytes_per_token(self) -> int:

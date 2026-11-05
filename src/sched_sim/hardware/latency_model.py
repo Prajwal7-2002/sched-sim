@@ -4,16 +4,17 @@ from sched_sim.hardware.profile import HardwareProfile
 
 
 class RooflineLatencyModel:
-    """Computes exact execution time for prefill, decode, and mixed forward passes."""
+    """Estimates execution time for prefill, decode, and mixed forward passes (roofline + overheads)."""
 
     def __init__(self, hardware: HardwareProfile):
         self.hardware = hardware
         self.bandwidth_bytes_s = hardware.memory_bandwidth_gb_s * 1e9
         self.compute_flops_s = hardware.effective_tflops * 1e12
         self.weights_bytes = (
-            hardware.parameter_count_billions * 1e9 * hardware.dtype_bytes
+            hardware.parameter_count_billions * 1e9 * hardware.bytes_per_weight
         )
         self.launch_overhead_s = hardware.kernel_launch_overhead_ms / 1000.0
+        self.per_sequence_overhead_s = hardware.per_sequence_overhead_ms / 1000.0
 
     def compute_prefill_step_time(self, num_prefill_tokens: int) -> float:
         """Calculate forward pass execution time for prompt prefill.
@@ -56,7 +57,11 @@ class RooflineLatencyModel:
         decode_flops = 2.0 * (self.hardware.parameter_count_billions * 1e9) * batch_size
         compute_time = decode_flops / self.compute_flops_s
 
-        execution_time = max(memory_time, compute_time) + self.launch_overhead_s
+        execution_time = (
+            max(memory_time, compute_time)
+            + self.launch_overhead_s
+            + self.per_sequence_overhead_s * batch_size
+        )
         return execution_time
 
     def compute_mixed_step_time(
@@ -86,7 +91,11 @@ class RooflineLatencyModel:
         )
         compute_time = total_flops / self.compute_flops_s
 
-        execution_time = max(memory_time, compute_time) + self.launch_overhead_s
+        execution_time = (
+            max(memory_time, compute_time)
+            + self.launch_overhead_s
+            + self.per_sequence_overhead_s * num_decode_requests
+        )
         return execution_time
 
     def compute_kv_transfer_time(self, num_tokens: int) -> float:
