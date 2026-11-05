@@ -44,7 +44,7 @@ PRESETS: dict[str, HardwareProfile] = {
     "t4": HardwareProfile(
         name="NVIDIA T4 (16GB)",
         vram_gb=16.0,
-        memory_bandwidth_gb_s=300.0,
+        memory_bandwidth_gb_s=320.0,
         fp16_tflops=65.0,
         tensor_core_efficiency=0.45,
         kernel_launch_overhead_ms=0.08,
@@ -62,7 +62,7 @@ PRESETS: dict[str, HardwareProfile] = {
     "a100": HardwareProfile(
         name="NVIDIA A100 SXM4 (80GB)",
         vram_gb=80.0,
-        memory_bandwidth_gb_s=1935.0,
+        memory_bandwidth_gb_s=2039.0,
         fp16_tflops=312.0,
         tensor_core_efficiency=0.52,
         kernel_launch_overhead_ms=0.05,

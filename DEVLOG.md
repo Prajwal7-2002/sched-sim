@@ -66,3 +66,25 @@ Chronological record of architectural milestones, benchmark validations, and eng
   - Rich terminal percentiles, ASCII Gantt iteration timeline, and JSON/Markdown export.
   - Load saturation sweeper (`sched-sim sweep`).
   - MkDocs Material documentation site.
+
+## 2026-11-05: v0.2.3 - Out-of-sample validation against real serving runs
+
+- **Problem**: `benchmarks/validate_flagships.py` derived bandwidth (Ollama) or launch overhead (mini-infer)
+  from the same measured TPOT it then "predicted", so the published 3-15% errors were in-sample fits. The
+  mini-infer trace also came from a version whose prefix cache was broken. The CI test read files from sibling
+  repos that do not exist in CI, so it never ran there.
+- **New data** (`benchmarks/data/`): servebench closed-loop sweeps (1/2/4 users, ~286-token prompts, 128 output
+  tokens, 24 requests per level) on an RTX 3050 laptop: Ollama 0.35.1 with Qwen2.5 0.5B/1.5B/3B (q4_k_m) and
+  mini-infer 0.2.9 with 0.5B/1.5B (bf16). Re-measuring mini-infer exposed a KV-pool leak (fixed in mini-infer 0.2.9).
+- **Method**: fixed inputs (architecture, bytes per weight from the served file, 121.5 GB/s measured copy
+  bandwidth); three engine constants fitted on the smallest model's 1- and 2-user runs only; everything else is
+  held out. The simulator now runs the same closed loop as servebench (arrivals from simulated completions);
+  replaying recorded arrival times made simulated queues grow without bound.
+- **Model additions**: `weight_bytes_per_param` (4-bit weights with an fp16 KV-cache) and
+  `per_sequence_overhead_ms` (batch of N costs more than batch of 1). Fixed T4 (300 -> 320 GB/s) and A100 SXM4
+  80 GB (1935 -> 2039 GB/s) presets.
+- **Results** (held out): Ollama TPOT within +/-12% on 6 of 7 rows (1.5B at 4 users +84%); TTFT +9% for 0.5B but
+  +34% to +100% for 1.5B/3B (prefill efficiency fitted on 0.5B does not transfer). mini-infer TPOT -13% to +28%;
+  TTFT -56% to -69% because mini-infer prefills each request in its own forward pass, unlike the simulator's
+  fused batches.
+- **Tests**: `tests/test_validation_benchmark.py` now runs on the bundled data and asserts the published bounds.

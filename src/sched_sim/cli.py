@@ -354,7 +354,7 @@ def calibrate(
 
     # Base raw weight memory streaming time (ms) at theoretical DRAM bandwidth
     base_mem_ms = (
-        (base_hw.parameter_count_billions * 1e9 * base_hw.dtype_bytes)
+        (base_hw.parameter_count_billions * 1e9 * base_hw.bytes_per_weight)
         / (base_hw.memory_bandwidth_gb_s * 1e9)
     ) * 1000.0
 
@@ -366,7 +366,7 @@ def calibrate(
         # High MBU or quantization: calibrate effective weights memory streaming bandwidth
         calibrated_launch = 0.02
         calibrated_bw = (
-            base_hw.parameter_count_billions * 1e9 * base_hw.dtype_bytes
+            base_hw.parameter_count_billions * 1e9 * base_hw.bytes_per_weight
         ) / (max(0.001, (measured_tpot - 0.02) / 1000.0) * 1e9)
 
     calibrated_efficiency = max(
