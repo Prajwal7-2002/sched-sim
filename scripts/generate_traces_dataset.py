@@ -221,7 +221,7 @@ A curated empirical benchmark dataset containing real and synthetic **LLM reques
 
 * **GitHub Repository:** [Prajwal7-2002/sched-sim](https://github.com/Prajwal7-2002/sched-sim)
 * **PyPI Engine:** [`pip install sched-sim`](https://pypi.org/project/sched-sim/)
-* **Engine Architecture Guide:** [Golden Inference Guide (Chapter 2)](https://github.com/Prajwal7-2002/interview_prep/blob/main/golden_interview_guide.md#chapter-2-sched-sim--the-discrete-event-simulation--queueing-engine)
+* **Documentation:** [prajwal7-2002.github.io/sched-sim](https://prajwal7-2002.github.io/sched-sim/)
 * **Author:** Prajwal Pujari ([@Prajwal7-2002](https://github.com/Prajwal7-2002))
 
 ---
