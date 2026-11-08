@@ -18,6 +18,7 @@ Testing these policies on real GPU clusters (e.g. 8x H100 nodes) is **slow, nois
 
 ## Quick Navigation
 
+* **[Interactive Studio (0ms CAD)](studio.html)** — Live in-browser serving simulation player, Sarathi chunked prefill vs FCFS Gantt visualizer, and silicon validation matrix.
 * **[Learning Guide: The Schedulers That Power LLM Serving](learn-scheduling.md)** — Core concepts, Little's Law, queueing theory, and hands-on experiments.
 * **[Theoretical Guide](theoretical-guide.md)** — Mathematical derivations of $M/G/1$ queues, roofline limits, and KV-cache network transfer physics.
 * **[Calibration Guide](calibration-guide.md)** — How to feed real silicon benchmarks from `servebench` and `mini-infer` into `sched-sim`.

@@ -6,6 +6,7 @@
 
 [![CI](https://github.com/Prajwal7-2002/sched-sim/actions/workflows/ci.yml/badge.svg)](https://github.com/Prajwal7-2002/sched-sim/actions)
 [![PyPI](https://img.shields.io/pypi/v/sched-sim.svg?color=blue)](https://pypi.org/project/sched-sim/)
+[![HuggingFace Space](https://img.shields.io/badge/🤗_HuggingFace-Spaces_Studio-blue)](https://huggingface.co/spaces/prajwalpujari16/sched-sim)
 [![HuggingFace Dataset](https://img.shields.io/badge/🤗_HuggingFace-llm--serving--traces-yellow)](https://huggingface.co/datasets/prajwalpujari16/llm-serving-traces)
 [![Docs](https://github.com/Prajwal7-2002/sched-sim/actions/workflows/docs.yml/badge.svg)](https://prajwal7-2002.github.io/sched-sim/)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
@@ -22,6 +23,8 @@ In modern inference clusters (vLLM, TGI, TensorRT-LLM, SGLang, DistServe), **the
 4. When to disaggregate prefill and decode phases onto specialized GPU worker pools (Splitwise / DistServe architecture).
 
 Testing these policies on real GPU clusters (e.g. 8x H100 nodes) is **slow, noisy, and expensive (\$20–\$50/hr)**. `sched-sim` simulates hours of multi-GPU serving traffic in **seconds on any standard CPU**, using analytical performance models calibrated on, and checked out of sample against, real serving runs measured with **[servebench](https://github.com/Prajwal7-2002/servebench)** and **[mini-infer](https://github.com/Prajwal7-2002/mini-infer)**.
+
+> 🌐 **Interactive Web Studio Live:** Simulate continuous batching, Sarathi chunked prefill, and Head-of-Line starvation directly in your browser with zero cold start: [**huggingface.co/spaces/prajwalpujari16/sched-sim**](https://huggingface.co/spaces/prajwalpujari16/sched-sim)
 
 ---
 

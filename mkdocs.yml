@@ -44,6 +44,7 @@ extra_javascript:
 
 nav:
   - Overview: index.md
+  - Interactive Studio: studio.html
   - Learning Guide: learn-scheduling.md
   - Theoretical Guide: theoretical-guide.md
   - Hardware Calibration: calibration-guide.md
