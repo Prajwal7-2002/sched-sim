@@ -49,6 +49,7 @@ examples/output/
 
 # Docs build
 site/
+hf_dataset/
 
 # Personal study notes, not part of the repo
 decisions.md
