@@ -213,6 +213,20 @@ tags:
 - preemption
 - chunked-prefill
 pretty_name: "LLM Serving Traces & Scheduler Performance Benchmark"
+configs:
+- config_name: serving_traces
+  data_files:
+  - split: train
+    path: serving_traces_master.json
+  default: true
+- config_name: scheduler_benchmarks
+  data_files:
+  - split: train
+    path: scheduler_benchmark_comparison.json
+- config_name: hardware_validation
+  data_files:
+  - split: train
+    path: hardware_validation_reference.json
 ---
 
 # ⏱️ LLM Serving Traces & Scheduler Performance Benchmark
