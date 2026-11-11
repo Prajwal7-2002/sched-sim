@@ -1,8 +1,7 @@
 """Tests for sched-sim Typer CLI."""
 
-from typer.testing import CliRunner
-
 from sched_sim.cli import app
+from typer.testing import CliRunner
 
 runner = CliRunner()
 

@@ -3,7 +3,7 @@
 import csv
 import json
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 
 from sched_sim.core.event_engine import Simulator
 from sched_sim.hardware.presets import get_hardware_profile
@@ -20,7 +20,7 @@ def main():
 
     print("Generating comprehensive LLM serving traces dataset...")
 
-    master_traces: List[Dict[str, Any]] = []
+    master_traces: list[dict[str, Any]] = []
 
     # 1. Real trace files
     trace_files = [
@@ -35,18 +35,24 @@ def main():
             requests = load_trace_file(fpath)
             for r in requests:
                 ratio = round(r.prompt_tokens / max(1, r.output_tokens), 2)
-                master_traces.append({
-                    "request_id": r.request_id,
-                    "workload_category": category,
-                    "arrival_time_s": round(r.arrived_at, 3),
-                    "prompt_tokens": r.prompt_tokens,
-                    "output_tokens": r.output_tokens,
-                    "total_tokens": r.prompt_tokens + r.output_tokens,
-                    "prefill_decode_ratio": ratio,
-                    "slo_ttft_ms": round(r.slo_ttft * 1000, 1) if r.slo_ttft else 0.0,
-                    "slo_tpot_ms": round(r.slo_tpot * 1000, 1) if r.slo_tpot else 0.0,
-                    "traffic_pattern": pattern,
-                })
+                master_traces.append(
+                    {
+                        "request_id": r.request_id,
+                        "workload_category": category,
+                        "arrival_time_s": round(r.arrived_at, 3),
+                        "prompt_tokens": r.prompt_tokens,
+                        "output_tokens": r.output_tokens,
+                        "total_tokens": r.prompt_tokens + r.output_tokens,
+                        "prefill_decode_ratio": ratio,
+                        "slo_ttft_ms": round(r.slo_ttft * 1000, 1)
+                        if r.slo_ttft
+                        else 0.0,
+                        "slo_tpot_ms": round(r.slo_tpot * 1000, 1)
+                        if r.slo_tpot
+                        else 0.0,
+                        "traffic_pattern": pattern,
+                    }
+                )
 
     # 2. Synthetic Poisson & Bursty streams
     poisson_reqs = generate_workload(
@@ -58,18 +64,20 @@ def main():
     )
     for r in poisson_reqs:
         ratio = round(r.prompt_tokens / max(1, r.output_tokens), 2)
-        master_traces.append({
-            "request_id": f"poisson_{r.request_id}",
-            "workload_category": "High-Frequency Mixed Traffic",
-            "arrival_time_s": round(r.arrived_at, 3),
-            "prompt_tokens": r.prompt_tokens,
-            "output_tokens": r.output_tokens,
-            "total_tokens": r.prompt_tokens + r.output_tokens,
-            "prefill_decode_ratio": ratio,
-            "slo_ttft_ms": round(r.slo_ttft * 1000, 1) if r.slo_ttft else 0.0,
-            "slo_tpot_ms": round(r.slo_tpot * 1000, 1) if r.slo_tpot else 0.0,
-            "traffic_pattern": "synthetic_poisson",
-        })
+        master_traces.append(
+            {
+                "request_id": f"poisson_{r.request_id}",
+                "workload_category": "High-Frequency Mixed Traffic",
+                "arrival_time_s": round(r.arrived_at, 3),
+                "prompt_tokens": r.prompt_tokens,
+                "output_tokens": r.output_tokens,
+                "total_tokens": r.prompt_tokens + r.output_tokens,
+                "prefill_decode_ratio": ratio,
+                "slo_ttft_ms": round(r.slo_ttft * 1000, 1) if r.slo_ttft else 0.0,
+                "slo_tpot_ms": round(r.slo_tpot * 1000, 1) if r.slo_tpot else 0.0,
+                "traffic_pattern": "synthetic_poisson",
+            }
+        )
 
     bursty_reqs = generate_workload(
         rate_req_per_s=10.0,
@@ -80,18 +88,20 @@ def main():
     )
     for r in bursty_reqs:
         ratio = round(r.prompt_tokens / max(1, r.output_tokens), 2)
-        master_traces.append({
-            "request_id": f"bursty_{r.request_id}",
-            "workload_category": "Clustered RAG Ingestion Spike",
-            "arrival_time_s": round(r.arrived_at, 3),
-            "prompt_tokens": r.prompt_tokens,
-            "output_tokens": r.output_tokens,
-            "total_tokens": r.prompt_tokens + r.output_tokens,
-            "prefill_decode_ratio": ratio,
-            "slo_ttft_ms": round(r.slo_ttft * 1000, 1) if r.slo_ttft else 0.0,
-            "slo_tpot_ms": round(r.slo_tpot * 1000, 1) if r.slo_tpot else 0.0,
-            "traffic_pattern": "synthetic_gamma_bursty",
-        })
+        master_traces.append(
+            {
+                "request_id": f"bursty_{r.request_id}",
+                "workload_category": "Clustered RAG Ingestion Spike",
+                "arrival_time_s": round(r.arrived_at, 3),
+                "prompt_tokens": r.prompt_tokens,
+                "output_tokens": r.output_tokens,
+                "total_tokens": r.prompt_tokens + r.output_tokens,
+                "prefill_decode_ratio": ratio,
+                "slo_ttft_ms": round(r.slo_ttft * 1000, 1) if r.slo_ttft else 0.0,
+                "slo_tpot_ms": round(r.slo_tpot * 1000, 1) if r.slo_tpot else 0.0,
+                "traffic_pattern": "synthetic_gamma_bursty",
+            }
+        )
 
     # Write serving_traces_master.csv & json
     traces_csv = out_dir / "serving_traces_master.csv"
@@ -118,7 +128,7 @@ def main():
         ("disaggregated", "Disaggregated (Splitwise / DistServe)"),
     ]
 
-    benchmark_rows: List[Dict[str, Any]] = []
+    benchmark_rows: list[dict[str, Any]] = []
 
     for workload_type in ["rag", "chatbot", "codegen"]:
         for s_key, s_display in scheduler_names:
@@ -140,17 +150,19 @@ def main():
             sim.submit_workload(reqs)
             m = sim.run()
 
-            benchmark_rows.append({
-                "scheduler_policy": s_display,
-                "workload_domain": workload_type.upper(),
-                "throughput_tok_per_s": round(m.throughput_tok_per_s, 1),
-                "ttft_p50_ms": round(m.ttft_ms.p50, 1),
-                "ttft_p99_ms": round(m.ttft_ms.p99, 1),
-                "tpot_p50_ms": round(m.tpot_ms.p50, 1),
-                "tpot_p99_ms": round(m.tpot_ms.p99, 1),
-                "preemptions": m.preempted_requests_count,
-                "goodput_pct": round(m.goodput_ratio, 1),
-            })
+            benchmark_rows.append(
+                {
+                    "scheduler_policy": s_display,
+                    "workload_domain": workload_type.upper(),
+                    "throughput_tok_per_s": round(m.throughput_tok_per_s, 1),
+                    "ttft_p50_ms": round(m.ttft_ms.p50, 1),
+                    "ttft_p99_ms": round(m.ttft_ms.p99, 1),
+                    "tpot_p50_ms": round(m.tpot_ms.p50, 1),
+                    "tpot_p99_ms": round(m.tpot_ms.p99, 1),
+                    "preemptions": m.preempted_requests_count,
+                    "goodput_pct": round(m.goodput_ratio, 1),
+                }
+            )
 
     bench_csv = out_dir / "scheduler_benchmark_comparison.csv"
     with open(bench_csv, "w", newline="", encoding="utf-8") as f:
@@ -165,18 +177,150 @@ def main():
 
     # 4. Hardware Calibration vs Simulation Validation Data
     validation_rows = [
-        {"engine": "Ollama 0.35.1 (llama.cpp, q4_k_m)", "model_size": "0.5b", "concurrency": 1, "split": "calibration", "ttft_real_ms": 44.3, "ttft_sim_ms": 44.3, "ttft_error_pct": 0.0, "tpot_real_ms": 5.0, "tpot_sim_ms": 5.0, "tpot_error_pct": 1.5},
-        {"engine": "Ollama 0.35.1 (llama.cpp, q4_k_m)", "model_size": "0.5b", "concurrency": 2, "split": "calibration", "ttft_real_ms": 60.7, "ttft_sim_ms": 54.9, "ttft_error_pct": -9.6, "tpot_real_ms": 5.9, "tpot_sim_ms": 6.3, "tpot_error_pct": 6.4},
-        {"engine": "Ollama 0.35.1 (llama.cpp, q4_k_m)", "model_size": "0.5b", "concurrency": 4, "split": "held-out", "ttft_real_ms": 103.5, "ttft_sim_ms": 113.2, "ttft_error_pct": 9.4, "tpot_real_ms": 8.3, "tpot_sim_ms": 8.4, "tpot_error_pct": 0.7},
-        {"engine": "Ollama 0.35.1 (llama.cpp, q4_k_m)", "model_size": "1.5b", "concurrency": 1, "split": "held-out", "ttft_real_ms": 80.7, "ttft_sim_ms": 136.8, "ttft_error_pct": 69.6, "tpot_real_ms": 10.7, "tpot_sim_ms": 10.7, "tpot_error_pct": 0.3},
-        {"engine": "Ollama 0.35.1 (llama.cpp, q4_k_m)", "model_size": "1.5b", "concurrency": 2, "split": "held-out", "ttft_real_ms": 125.3, "ttft_sim_ms": 215.6, "ttft_error_pct": 72.1, "tpot_real_ms": 14.9, "tpot_sim_ms": 16.6, "tpot_error_pct": 11.3},
-        {"engine": "Ollama 0.35.1 (llama.cpp, q4_k_m)", "model_size": "1.5b", "concurrency": 4, "split": "held-out", "ttft_real_ms": 266.9, "ttft_sim_ms": 358.2, "ttft_error_pct": 34.2, "tpot_real_ms": 15.8, "tpot_sim_ms": 29.1, "tpot_error_pct": 83.7},
-        {"engine": "Ollama 0.35.1 (llama.cpp, q4_k_m)", "model_size": "3b", "concurrency": 1, "split": "held-out", "ttft_real_ms": 136.7, "ttft_sim_ms": 272.8, "ttft_error_pct": 99.6, "tpot_real_ms": 17.8, "tpot_sim_ms": 17.8, "tpot_error_pct": 0.0},
-        {"engine": "Ollama 0.35.1 (llama.cpp, q4_k_m)", "model_size": "3b", "concurrency": 2, "split": "held-out", "ttft_real_ms": 248.2, "ttft_sim_ms": 418.1, "ttft_error_pct": 68.5, "tpot_real_ms": 19.3, "tpot_sim_ms": 19.9, "tpot_error_pct": 2.9},
-        {"engine": "Ollama 0.35.1 (llama.cpp, q4_k_m)", "model_size": "3b", "concurrency": 4, "split": "held-out", "ttft_real_ms": 472.1, "ttft_sim_ms": 890.8, "ttft_error_pct": 88.7, "tpot_real_ms": 23.8, "tpot_sim_ms": 22.6, "tpot_error_pct": -5.1},
-        {"engine": "mini-infer 0.2.9 (PyTorch eager, bf16)", "model_size": "0.5b", "concurrency": 1, "split": "calibration", "ttft_real_ms": 120.3, "ttft_sim_ms": 120.3, "ttft_error_pct": 0.0, "tpot_real_ms": 117.0, "tpot_sim_ms": 118.0, "tpot_error_pct": 0.8},
-        {"engine": "mini-infer 0.2.9 (PyTorch eager, bf16)", "model_size": "0.5b", "concurrency": 2, "split": "calibration", "ttft_real_ms": 290.9, "ttft_sim_ms": 240.3, "ttft_error_pct": -17.4, "tpot_real_ms": 129.7, "tpot_sim_ms": 130.8, "tpot_error_pct": 0.8},
-        {"engine": "mini-infer 0.2.9 (PyTorch eager, bf16)", "model_size": "0.5b", "concurrency": 4, "split": "held-out", "ttft_real_ms": 794.2, "ttft_sim_ms": 289.4, "ttft_error_pct": -63.6, "tpot_real_ms": 147.7, "tpot_sim_ms": 155.6, "tpot_error_pct": 5.4},
+        {
+            "engine": "Ollama 0.35.1 (llama.cpp, q4_k_m)",
+            "model_size": "0.5b",
+            "concurrency": 1,
+            "split": "calibration",
+            "ttft_real_ms": 44.3,
+            "ttft_sim_ms": 44.3,
+            "ttft_error_pct": 0.0,
+            "tpot_real_ms": 5.0,
+            "tpot_sim_ms": 5.0,
+            "tpot_error_pct": 1.5,
+        },
+        {
+            "engine": "Ollama 0.35.1 (llama.cpp, q4_k_m)",
+            "model_size": "0.5b",
+            "concurrency": 2,
+            "split": "calibration",
+            "ttft_real_ms": 60.7,
+            "ttft_sim_ms": 54.9,
+            "ttft_error_pct": -9.6,
+            "tpot_real_ms": 5.9,
+            "tpot_sim_ms": 6.3,
+            "tpot_error_pct": 6.4,
+        },
+        {
+            "engine": "Ollama 0.35.1 (llama.cpp, q4_k_m)",
+            "model_size": "0.5b",
+            "concurrency": 4,
+            "split": "held-out",
+            "ttft_real_ms": 103.5,
+            "ttft_sim_ms": 113.2,
+            "ttft_error_pct": 9.4,
+            "tpot_real_ms": 8.3,
+            "tpot_sim_ms": 8.4,
+            "tpot_error_pct": 0.7,
+        },
+        {
+            "engine": "Ollama 0.35.1 (llama.cpp, q4_k_m)",
+            "model_size": "1.5b",
+            "concurrency": 1,
+            "split": "held-out",
+            "ttft_real_ms": 80.7,
+            "ttft_sim_ms": 136.8,
+            "ttft_error_pct": 69.6,
+            "tpot_real_ms": 10.7,
+            "tpot_sim_ms": 10.7,
+            "tpot_error_pct": 0.3,
+        },
+        {
+            "engine": "Ollama 0.35.1 (llama.cpp, q4_k_m)",
+            "model_size": "1.5b",
+            "concurrency": 2,
+            "split": "held-out",
+            "ttft_real_ms": 125.3,
+            "ttft_sim_ms": 215.6,
+            "ttft_error_pct": 72.1,
+            "tpot_real_ms": 14.9,
+            "tpot_sim_ms": 16.6,
+            "tpot_error_pct": 11.3,
+        },
+        {
+            "engine": "Ollama 0.35.1 (llama.cpp, q4_k_m)",
+            "model_size": "1.5b",
+            "concurrency": 4,
+            "split": "held-out",
+            "ttft_real_ms": 266.9,
+            "ttft_sim_ms": 358.2,
+            "ttft_error_pct": 34.2,
+            "tpot_real_ms": 15.8,
+            "tpot_sim_ms": 29.1,
+            "tpot_error_pct": 83.7,
+        },
+        {
+            "engine": "Ollama 0.35.1 (llama.cpp, q4_k_m)",
+            "model_size": "3b",
+            "concurrency": 1,
+            "split": "held-out",
+            "ttft_real_ms": 136.7,
+            "ttft_sim_ms": 272.8,
+            "ttft_error_pct": 99.6,
+            "tpot_real_ms": 17.8,
+            "tpot_sim_ms": 17.8,
+            "tpot_error_pct": 0.0,
+        },
+        {
+            "engine": "Ollama 0.35.1 (llama.cpp, q4_k_m)",
+            "model_size": "3b",
+            "concurrency": 2,
+            "split": "held-out",
+            "ttft_real_ms": 248.2,
+            "ttft_sim_ms": 418.1,
+            "ttft_error_pct": 68.5,
+            "tpot_real_ms": 19.3,
+            "tpot_sim_ms": 19.9,
+            "tpot_error_pct": 2.9,
+        },
+        {
+            "engine": "Ollama 0.35.1 (llama.cpp, q4_k_m)",
+            "model_size": "3b",
+            "concurrency": 4,
+            "split": "held-out",
+            "ttft_real_ms": 472.1,
+            "ttft_sim_ms": 890.8,
+            "ttft_error_pct": 88.7,
+            "tpot_real_ms": 23.8,
+            "tpot_sim_ms": 22.6,
+            "tpot_error_pct": -5.1,
+        },
+        {
+            "engine": "mini-infer 0.2.9 (PyTorch eager, bf16)",
+            "model_size": "0.5b",
+            "concurrency": 1,
+            "split": "calibration",
+            "ttft_real_ms": 120.3,
+            "ttft_sim_ms": 120.3,
+            "ttft_error_pct": 0.0,
+            "tpot_real_ms": 117.0,
+            "tpot_sim_ms": 118.0,
+            "tpot_error_pct": 0.8,
+        },
+        {
+            "engine": "mini-infer 0.2.9 (PyTorch eager, bf16)",
+            "model_size": "0.5b",
+            "concurrency": 2,
+            "split": "calibration",
+            "ttft_real_ms": 290.9,
+            "ttft_sim_ms": 240.3,
+            "ttft_error_pct": -17.4,
+            "tpot_real_ms": 129.7,
+            "tpot_sim_ms": 130.8,
+            "tpot_error_pct": 0.8,
+        },
+        {
+            "engine": "mini-infer 0.2.9 (PyTorch eager, bf16)",
+            "model_size": "0.5b",
+            "concurrency": 4,
+            "split": "held-out",
+            "ttft_real_ms": 794.2,
+            "ttft_sim_ms": 289.4,
+            "ttft_error_pct": -63.6,
+            "tpot_real_ms": 147.7,
+            "tpot_sim_ms": 155.6,
+            "tpot_error_pct": 5.4,
+        },
     ]
 
     val_csv = out_dir / "hardware_validation_reference.csv"

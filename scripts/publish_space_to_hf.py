@@ -1,6 +1,7 @@
 """Upload sched-sim Static Space to Hugging Face."""
 
 from pathlib import Path
+
 from huggingface_hub import HfApi, whoami
 
 
@@ -8,7 +9,9 @@ def main():
     api = HfApi()
     user_info = whoami()
     username = user_info["name"]
-    print(f"Authenticated as Hugging Face user: {username} ({user_info.get('fullname')})")
+    print(
+        f"Authenticated as Hugging Face user: {username} ({user_info.get('fullname')})"
+    )
 
     root = Path(__file__).resolve().parent.parent
 
@@ -16,7 +19,9 @@ def main():
     space_dir = root / "hf_space"
 
     if not space_dir.exists():
-        raise FileNotFoundError(f"Directory {space_dir} does not exist. Run build_static_studio.py first!")
+        raise FileNotFoundError(
+            f"Directory {space_dir} does not exist. Run build_static_studio.py first!"
+        )
 
     print(f"\nCreating and uploading Static Space: {space_id}...")
     api.create_repo(

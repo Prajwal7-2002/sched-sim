@@ -1,7 +1,6 @@
 """Unit tests for the SchedulerRegistry and create_scheduler factory."""
 
 import pytest
-
 from sched_sim.hardware.presets import get_hardware_profile
 from sched_sim.memory.block_manager import BlockManager
 from sched_sim.memory.preemption import PreemptionMode

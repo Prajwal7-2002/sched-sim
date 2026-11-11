@@ -3,7 +3,6 @@
 import math
 
 from pydantic import BaseModel
-
 from sched_sim.core.request import Request, RequestState
 
 

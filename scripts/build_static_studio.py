@@ -7,7 +7,9 @@ from pathlib import Path
 def generate_html(schedulers_data: list, hardware_data: list, traces_data: list) -> str:
     sched_json_str = json.dumps(schedulers_data)
     hw_json_str = json.dumps(hardware_data)
-    traces_json_str = json.dumps(traces_data[:50])  # Embed first 50 rich traces for table & simulation player
+    traces_json_str = json.dumps(
+        traces_data[:50]
+    )  # Embed first 50 rich traces for table & simulation player
 
     html_content = f"""<!DOCTYPE html>
 <html lang="en">
@@ -1009,14 +1011,22 @@ def main():
     hw_json_path = root / "hf_dataset" / "hardware_validation_reference.json"
     traces_json_path = root / "hf_dataset" / "serving_traces_master.json"
 
-    if not sched_json_path.exists() or not hw_json_path.exists() or not traces_json_path.exists():
-        raise FileNotFoundError("Dataset JSON files not found. Run generate_traces_dataset.py first!")
+    if (
+        not sched_json_path.exists()
+        or not hw_json_path.exists()
+        or not traces_json_path.exists()
+    ):
+        raise FileNotFoundError(
+            "Dataset JSON files not found. Run generate_traces_dataset.py first!"
+        )
 
     sched_data = json.loads(sched_json_path.read_text(encoding="utf-8"))
     hw_data = json.loads(hw_json_path.read_text(encoding="utf-8"))
     traces_data = json.loads(traces_json_path.read_text(encoding="utf-8"))
 
-    print(f"Loaded {len(sched_data)} scheduler rows, {len(hw_data)} silicon points, and {len(traces_data)} traces.")
+    print(
+        f"Loaded {len(sched_data)} scheduler rows, {len(hw_data)} silicon points, and {len(traces_data)} traces."
+    )
 
     # 2. Generate HTML
     html_content = generate_html(sched_data, hw_data, traces_data)
@@ -1061,7 +1071,9 @@ Interactive discrete-event simulation of LLM serving scheduling policies, Head-o
     print(f"✓ Wrote {docs_html_path}")
 
     # 5. Copy to brain artifact directory for preview
-    brain_dir = Path(r"C:\Users\ADMIN\.gemini\antigravity\brain\b4bc2e58-a6e6-4dec-a3a6-5013100d2137")
+    brain_dir = Path(
+        r"C:\Users\ADMIN\.gemini\antigravity\brain\b4bc2e58-a6e6-4dec-a3a6-5013100d2137"
+    )
     if brain_dir.exists():
         artifact_path = brain_dir / "sched_sim_studio_preview.html"
         artifact_path.write_text(html_content, encoding="utf-8")

@@ -2,7 +2,6 @@
 
 from rich.console import Console
 from rich.table import Table
-
 from sched_sim.core.event_engine import IterationRecord
 
 console = Console()
