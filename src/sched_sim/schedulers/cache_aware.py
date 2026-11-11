@@ -22,15 +22,11 @@ class CacheAwareScheduler(BaseScheduler):
         preemption_handler: PreemptionHandler,
         max_batch_size: int = 32,
     ):
-        super().__init__(
-            block_manager, latency_model, preemption_handler, max_batch_size
-        )
+        super().__init__(block_manager, latency_model, preemption_handler, max_batch_size)
         # Ensure prefix caching is active in block manager
         self.block_manager.enable_prefix_caching = True
         if self.block_manager.prefix_cache is None:
-            self.block_manager.prefix_cache = PrefixCache(
-                block_size=self.block_manager.block_size
-            )
+            self.block_manager.prefix_cache = PrefixCache(block_size=self.block_manager.block_size)
 
     @property
     def name(self) -> str:

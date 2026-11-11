@@ -72,9 +72,7 @@ class Simulator:
 
     def add_event(self, timestamp: float, event_type: str, payload: Any = None) -> None:
         self.event_counter += 1
-        heapq.heappush(
-            self.event_queue, (timestamp, self.event_counter, event_type, payload)
-        )
+        heapq.heappush(self.event_queue, (timestamp, self.event_counter, event_type, payload))
 
     def submit_workload(self, requests: list[Request]) -> None:
         """Schedule arrivals for an entire batch of incoming requests."""
@@ -131,9 +129,7 @@ class Simulator:
         # Calculate forward pass execution time
         num_prefill = decision.total_prefill_tokens
         num_decode = decision.total_decode_requests
-        total_decode_context = sum(
-            r.current_context_len for r in decision.decode_requests
-        )
+        total_decode_context = sum(r.current_context_len for r in decision.decode_requests)
 
         if num_prefill > 0 and num_decode > 0:
             step_time = self.latency_model.compute_mixed_step_time(

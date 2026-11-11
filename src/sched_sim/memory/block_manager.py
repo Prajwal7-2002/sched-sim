@@ -32,15 +32,11 @@ class BlockManager:
             0.5, hardware.vram_gb - hardware.model_weights_gb - safety_buffer_gb
         )
         available_vram_bytes = available_vram_gb * (1024**3)
-        self.total_gpu_blocks = max(
-            16, int(available_vram_bytes // self.bytes_per_block)
-        )
+        self.total_gpu_blocks = max(16, int(available_vram_bytes // self.bytes_per_block))
 
         # Calculate available CPU RAM blocks for swap preemption
         available_cpu_bytes = cpu_memory_gb * (1024**3)
-        self.total_cpu_blocks = max(
-            64, int(available_cpu_bytes // self.bytes_per_block)
-        )
+        self.total_cpu_blocks = max(64, int(available_cpu_bytes // self.bytes_per_block))
 
         # Free block pools
         self.free_gpu_blocks: list[int] = list(range(self.total_gpu_blocks))
@@ -80,13 +76,9 @@ class BlockManager:
         ):
             tokens = request.get_token_ids()
             matched_blocks, _ = self.prefix_cache.match_prefix(tokens)
-            needed_total = self.blocks_required(
-                request.current_context_len + additional_tokens
-            )
+            needed_total = self.blocks_required(request.current_context_len + additional_tokens)
             needed_fresh = max(0, needed_total - len(matched_blocks))
-            evictable = sum(
-                1 for n in self.prefix_cache.node_map.values() if n.is_evictable
-            )
+            evictable = sum(1 for n in self.prefix_cache.node_map.values() if n.is_evictable)
             return (len(self.free_gpu_blocks) + evictable) >= needed_fresh
 
         current_blocks = len(self.gpu_block_tables.get(request.request_id, []))
@@ -95,9 +87,7 @@ class BlockManager:
         new_blocks = max(0, needed_blocks - current_blocks)
         return len(self.free_gpu_blocks) >= new_blocks
 
-    def allocate(
-        self, request: Request, initial_tokens: int, current_time: float = 0.0
-    ) -> bool:
+    def allocate(self, request: Request, initial_tokens: int, current_time: float = 0.0) -> bool:
         """Allocate initial physical blocks for a new request."""
         req_id = request.request_id
         if req_id in self.gpu_block_tables:
@@ -151,11 +141,7 @@ class BlockManager:
         needed_blocks = self.blocks_required(current_tokens + 1)
 
         if needed_blocks > current_blocks:
-            if (
-                not self.free_gpu_blocks
-                and self.enable_prefix_caching
-                and self.prefix_cache
-            ):
+            if not self.free_gpu_blocks and self.enable_prefix_caching and self.prefix_cache:
                 freed = self.prefix_cache.evict_lru(1)
                 self.free_gpu_blocks.extend(freed)
 

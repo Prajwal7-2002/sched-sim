@@ -17,9 +17,7 @@ class DisaggregatedScheduler(BaseScheduler):
         preemption_handler: PreemptionHandler,
         max_batch_size: int = 32,
     ):
-        super().__init__(
-            block_manager, latency_model, preemption_handler, max_batch_size
-        )
+        super().__init__(block_manager, latency_model, preemption_handler, max_batch_size)
         # Queue of requests currently in transit across the interconnect (req, ready_at_timestamp)
         self.transferring_queue: list[tuple[Request, float]] = []
 
@@ -90,13 +88,9 @@ class DisaggregatedScheduler(BaseScheduler):
 
         return decision
 
-    def register_prefill_completion(
-        self, request: Request, current_time: float
-    ) -> None:
+    def register_prefill_completion(self, request: Request, current_time: float) -> None:
         """Called when a prefill finishes on the prefill worker, initiating KV transfer to decode worker."""
-        transfer_delay = self.latency_model.compute_kv_transfer_time(
-            request.prompt_tokens
-        )
+        transfer_delay = self.latency_model.compute_kv_transfer_time(request.prompt_tokens)
         ready_timestamp = current_time + transfer_delay
         self.transferring_queue.append((request, ready_timestamp))
 

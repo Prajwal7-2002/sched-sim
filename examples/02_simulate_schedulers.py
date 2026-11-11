@@ -110,13 +110,9 @@ def main() -> None:
     print("=" * 70)
 
     ttft_speedup = (
-        (metrics_fcfs.ttft_ms.mean - metrics_cache.ttft_ms.mean)
-        / metrics_fcfs.ttft_ms.mean
-        * 100
+        (metrics_fcfs.ttft_ms.mean - metrics_cache.ttft_ms.mean) / metrics_fcfs.ttft_ms.mean * 100
     )
-    print(
-        f"\n[INSIGHT] Cache-Aware scheduling reduced Mean TTFT by {ttft_speedup:.1f}%"
-    )
+    print(f"\n[INSIGHT] Cache-Aware scheduling reduced Mean TTFT by {ttft_speedup:.1f}%")
     print("          via zero-copy KV-cache reuse and prefill skipping!")
 
 

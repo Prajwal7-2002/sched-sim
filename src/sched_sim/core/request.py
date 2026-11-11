@@ -60,18 +60,14 @@ class Request(BaseModel):
 
         if self.prefix_key:
             shared_len = (
-                self.shared_prefix_tokens
-                if self.shared_prefix_tokens > 0
-                else self.prompt_tokens
+                self.shared_prefix_tokens if self.shared_prefix_tokens > 0 else self.prompt_tokens
             )
             base_id = (hash(self.prefix_key) & 0x7FFFFFFF) % 100000
             req_hash = (hash(self.request_id) & 0x7FFFFFFF) % 100000
             shared_count = min(self.prompt_tokens, shared_len)
             tokens = [base_id + (i % 2000) for i in range(shared_count)]
             if len(tokens) < self.prompt_tokens:
-                tokens.extend(
-                    req_hash + i for i in range(self.prompt_tokens - len(tokens))
-                )
+                tokens.extend(req_hash + i for i in range(self.prompt_tokens - len(tokens)))
             return tokens
 
         req_hash = (hash(self.request_id) & 0x7FFFFFFF) % 100000

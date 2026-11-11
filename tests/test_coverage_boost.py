@@ -106,9 +106,7 @@ def test_exporters_json_and_markdown(tmp_path):
     sched = FCFSScheduler(bm, lm, ph, max_batch_size=2)
     sim = Simulator(hw, sched)
 
-    req = Request(
-        request_id="exp_test", arrived_at=0.0, prompt_tokens=30, output_tokens=5
-    )
+    req = Request(request_id="exp_test", arrived_at=0.0, prompt_tokens=30, output_tokens=5)
     sim.submit_workload([req])
     metrics = sim.run()
 
@@ -137,9 +135,7 @@ def test_gantt_timeline_render():
     sched = FCFSScheduler(bm, lm, ph, max_batch_size=2)
     sim = Simulator(hw, sched)
 
-    req = Request(
-        request_id="gantt_test", arrived_at=0.0, prompt_tokens=30, output_tokens=5
-    )
+    req = Request(request_id="gantt_test", arrived_at=0.0, prompt_tokens=30, output_tokens=5)
     sim.submit_workload([req])
     sim.run()
 
@@ -149,19 +145,13 @@ def test_gantt_timeline_render():
 
 def test_generator_patterns():
     # Bursty Gamma
-    reqs_bursty = generate_workload(
-        rate_req_per_s=5, duration_s=1.0, pattern="bursty", seed=42
-    )
+    reqs_bursty = generate_workload(rate_req_per_s=5, duration_s=1.0, pattern="bursty", seed=42)
     assert len(reqs_bursty) > 0
 
     # Constant
-    reqs_const = generate_workload(
-        rate_req_per_s=5, duration_s=1.0, pattern="constant", seed=42
-    )
+    reqs_const = generate_workload(rate_req_per_s=5, duration_s=1.0, pattern="constant", seed=42)
     assert len(reqs_const) > 0
 
     # Mixed distribution
-    reqs_mixed = generate_workload(
-        rate_req_per_s=5, duration_s=2.0, workload_type="mixed", seed=42
-    )
+    reqs_mixed = generate_workload(rate_req_per_s=5, duration_s=2.0, workload_type="mixed", seed=42)
     assert len(reqs_mixed) > 0

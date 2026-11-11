@@ -165,9 +165,7 @@ def calibrate(levels: dict[int, dict], arch: str, bytes_per_weight: float) -> di
     one, two = _measured(levels[1]), _measured(levels[2])
     per_seq = max(0.0, two["tpot_ms"] - one["tpot_ms"])
     overhead = max(0.0, one["tpot_ms"] - weight_ms - per_seq)
-    prompt = sum(r["prompt_tokens"] for r in levels[1]["requests"]) / len(
-        levels[1]["requests"]
-    )
+    prompt = sum(r["prompt_tokens"] for r in levels[1]["requests"]) / len(levels[1]["requests"])
     flops = 2 * hw0.parameter_count_billions * 1e9 * prompt
     prefill_s = max(1e-4, (one["ttft_ms"] - overhead) / 1e3)
     efficiency = min(1.0, flops / (prefill_s * FP16_TFLOPS * 1e12))
@@ -200,10 +198,7 @@ def main() -> list[dict]:
                     "held_out": held_out,
                     **{f"real_{k}": round(v, 1) for k, v in real.items()},
                     **{f"sim_{k}": round(v, 1) for k, v in sim.items()},
-                    **{
-                        f"err_{k}_pct": round((sim[k] - real[k]) / real[k] * 100, 1)
-                        for k in real
-                    },
+                    **{f"err_{k}_pct": round((sim[k] - real[k]) / real[k] * 100, 1) for k in real},
                 }
                 rows.append(row)
                 tag = "held-out" if held_out else "calibration"

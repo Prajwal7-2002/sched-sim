@@ -13,12 +13,8 @@ def test_recomputation_preemption():
     lm = RooflineLatencyModel(hw)
     handler = PreemptionHandler(bm, lm, mode=PreemptionMode.RECOMPUTE)
 
-    req1 = Request(
-        request_id="req1", arrived_at=0.0, prompt_tokens=32, output_tokens=10
-    )
-    req2 = Request(
-        request_id="req2", arrived_at=0.1, prompt_tokens=32, output_tokens=10
-    )
+    req1 = Request(request_id="req1", arrived_at=0.0, prompt_tokens=32, output_tokens=10)
+    req2 = Request(request_id="req2", arrived_at=0.1, prompt_tokens=32, output_tokens=10)
 
     bm.allocate(req1, 32)
     bm.allocate(req2, 32)
@@ -40,9 +36,7 @@ def test_swap_preemption():
     lm = RooflineLatencyModel(hw)
     handler = PreemptionHandler(bm, lm, mode=PreemptionMode.SWAP)
 
-    req = Request(
-        request_id="req_swap_test", arrived_at=0.0, prompt_tokens=32, output_tokens=10
-    )
+    req = Request(request_id="req_swap_test", arrived_at=0.0, prompt_tokens=32, output_tokens=10)
     bm.allocate(req, 32)
 
     victim, penalty = handler.preempt_victim([req])

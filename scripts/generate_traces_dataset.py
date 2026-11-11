@@ -44,12 +44,8 @@ def main():
                         "output_tokens": r.output_tokens,
                         "total_tokens": r.prompt_tokens + r.output_tokens,
                         "prefill_decode_ratio": ratio,
-                        "slo_ttft_ms": round(r.slo_ttft * 1000, 1)
-                        if r.slo_ttft
-                        else 0.0,
-                        "slo_tpot_ms": round(r.slo_tpot * 1000, 1)
-                        if r.slo_tpot
-                        else 0.0,
+                        "slo_ttft_ms": round(r.slo_ttft * 1000, 1) if r.slo_ttft else 0.0,
+                        "slo_tpot_ms": round(r.slo_tpot * 1000, 1) if r.slo_tpot else 0.0,
                         "traffic_pattern": pattern,
                     }
                 )

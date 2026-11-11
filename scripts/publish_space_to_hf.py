@@ -9,9 +9,7 @@ def main():
     api = HfApi()
     user_info = whoami()
     username = user_info["name"]
-    print(
-        f"Authenticated as Hugging Face user: {username} ({user_info.get('fullname')})"
-    )
+    print(f"Authenticated as Hugging Face user: {username} ({user_info.get('fullname')})")
 
     root = Path(__file__).resolve().parent.parent
 

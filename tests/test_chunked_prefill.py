@@ -16,14 +16,10 @@ def test_chunked_prefill_slices_large_prompt():
     ph = PreemptionHandler(bm, lm)
 
     # Budget of 256 tokens per iteration
-    chunked = ChunkedPrefillScheduler(
-        bm, lm, ph, max_batch_size=4, max_token_budget=256
-    )
+    chunked = ChunkedPrefillScheduler(bm, lm, ph, max_batch_size=4, max_token_budget=256)
 
     # Request with 600 prompt tokens (requires 3 iterations: 256 + 256 + 88)
-    req = Request(
-        request_id="large_prompt", arrived_at=0.0, prompt_tokens=600, output_tokens=5
-    )
+    req = Request(request_id="large_prompt", arrived_at=0.0, prompt_tokens=600, output_tokens=5)
     chunked.add_request(req)
 
     # Iteration 1
@@ -59,9 +55,7 @@ def test_chunked_prefill_simulation_e2e():
     chunked = ChunkedPrefillScheduler(bm, lm, ph, max_token_budget=256)
     sim = Simulator(hw, chunked)
 
-    req = Request(
-        request_id="e2e_chunk", arrived_at=0.0, prompt_tokens=500, output_tokens=10
-    )
+    req = Request(request_id="e2e_chunk", arrived_at=0.0, prompt_tokens=500, output_tokens=10)
     sim.submit_workload([req])
     metrics = sim.run()
 

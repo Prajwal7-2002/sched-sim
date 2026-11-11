@@ -16,12 +16,8 @@ def test_sjf_prioritizes_shorter_prompts():
 
     # Request 1: Long prompt (1000 tokens)
     # Request 2: Short prompt (50 tokens) - both arrive at time 0
-    req_long = Request(
-        request_id="long", arrived_at=0.0, prompt_tokens=1000, output_tokens=5
-    )
-    req_short = Request(
-        request_id="short", arrived_at=0.0, prompt_tokens=50, output_tokens=5
-    )
+    req_long = Request(request_id="long", arrived_at=0.0, prompt_tokens=1000, output_tokens=5)
+    req_short = Request(request_id="short", arrived_at=0.0, prompt_tokens=50, output_tokens=5)
 
     bm = BlockManager(hw)
     lm = RooflineLatencyModel(hw)
@@ -67,9 +63,7 @@ def test_disaggregated_scheduler():
     disagg = DisaggregatedScheduler(bm, lm, ph, max_batch_size=4)
     sim = Simulator(hw, disagg)
 
-    req = Request(
-        request_id="req_pd", arrived_at=0.0, prompt_tokens=200, output_tokens=10
-    )
+    req = Request(request_id="req_pd", arrived_at=0.0, prompt_tokens=200, output_tokens=10)
     sim.submit_workload([req])
     metrics = sim.run()
 

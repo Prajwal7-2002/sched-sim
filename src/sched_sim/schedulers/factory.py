@@ -41,9 +41,7 @@ class SchedulerRegistry:
             cls._registry[canonical] = subclass
             if aliases:
                 for alias in aliases:
-                    cls._aliases[alias.lower().replace("-", "").replace("_", "")] = (
-                        canonical
-                    )
+                    cls._aliases[alias.lower().replace("-", "").replace("_", "")] = canonical
             return subclass
 
         return decorator
@@ -78,21 +76,15 @@ class SchedulerRegistry:
 
 
 # Register core built-in schedulers
-SchedulerRegistry.register("fcfs", aliases=["firstcomefirstserved", "fifo"])(
-    FCFSScheduler
+SchedulerRegistry.register("fcfs", aliases=["firstcomefirstserved", "fifo"])(FCFSScheduler)
+SchedulerRegistry.register("sjf", aliases=["shortest", "shortestjobfirst"])(SJFScheduler)
+SchedulerRegistry.register("chunked", aliases=["chunkedprefill", "sarathi", "sarathiserve"])(
+    ChunkedPrefillScheduler
 )
-SchedulerRegistry.register("sjf", aliases=["shortest", "shortestjobfirst"])(
-    SJFScheduler
+SchedulerRegistry.register("slo", aliases=["sloaware", "deadline", "edf"])(SLOAwareScheduler)
+SchedulerRegistry.register("disaggregated", aliases=["disagg", "splitwise", "distserve"])(
+    DisaggregatedScheduler
 )
-SchedulerRegistry.register(
-    "chunked", aliases=["chunkedprefill", "sarathi", "sarathiserve"]
-)(ChunkedPrefillScheduler)
-SchedulerRegistry.register("slo", aliases=["sloaware", "deadline", "edf"])(
-    SLOAwareScheduler
-)
-SchedulerRegistry.register(
-    "disaggregated", aliases=["disagg", "splitwise", "distserve"]
-)(DisaggregatedScheduler)
 SchedulerRegistry.register(
     "cacheaware", aliases=["cache", "prefix", "radix", "prefixcache", "sglang"]
 )(CacheAwareScheduler)
@@ -125,9 +117,7 @@ def create_scheduler(
 
     block_manager = BlockManager(hardware, enable_prefix_caching=use_prefix_cache)
     latency_model = RooflineLatencyModel(hardware)
-    preemption_handler = PreemptionHandler(
-        block_manager, latency_model, preemption_mode
-    )
+    preemption_handler = PreemptionHandler(block_manager, latency_model, preemption_mode)
 
     scheduler_cls = SchedulerRegistry.get(name)
 

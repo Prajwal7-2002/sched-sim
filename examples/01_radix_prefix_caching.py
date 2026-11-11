@@ -18,9 +18,7 @@ def main() -> None:
 
     # 1. Initialize BlockManager with A100 preset and prefix caching enabled
     hardware = PRESETS["a100"]
-    block_mgr = BlockManager(
-        hardware=hardware, block_size=16, enable_prefix_caching=True
-    )
+    block_mgr = BlockManager(hardware=hardware, block_size=16, enable_prefix_caching=True)
 
     print(f"\n[1] Hardware: {hardware.name} ({hardware.vram_gb} GB VRAM)")
     print(f"    Total GPU KV-Cache Blocks : {block_mgr.total_gpu_blocks}")
@@ -38,12 +36,8 @@ def main() -> None:
         prompt_token_ids=system_prompt + user_query1,
     )
 
-    print(
-        f"\n[2] Request 1 Arrives ({req1.prompt_tokens} prompt tokens: 64 sys + 4 query)"
-    )
-    allocated1 = block_mgr.allocate(
-        req1, initial_tokens=req1.prompt_tokens, current_time=0.0
-    )
+    print(f"\n[2] Request 1 Arrives ({req1.prompt_tokens} prompt tokens: 64 sys + 4 query)")
+    allocated1 = block_mgr.allocate(req1, initial_tokens=req1.prompt_tokens, current_time=0.0)
     assert allocated1, "Failed to allocate Request 1"
 
     req1_blocks = block_mgr.gpu_block_tables[req1.request_id]
@@ -60,12 +54,8 @@ def main() -> None:
         prompt_token_ids=system_prompt + user_query2,
     )
 
-    print(
-        f"\n[3] Request 2 Arrives ({req2.prompt_tokens} prompt tokens: 64 shared sys + 6 query)"
-    )
-    allocated2 = block_mgr.allocate(
-        req2, initial_tokens=req2.prompt_tokens, current_time=1.2
-    )
+    print(f"\n[3] Request 2 Arrives ({req2.prompt_tokens} prompt tokens: 64 shared sys + 6 query)")
+    allocated2 = block_mgr.allocate(req2, initial_tokens=req2.prompt_tokens, current_time=1.2)
     assert allocated2, "Failed to allocate Request 2"
 
     req2_blocks = block_mgr.gpu_block_tables[req2.request_id]
@@ -91,9 +81,7 @@ def main() -> None:
     print(f"    Total Matched Tokens     : {cache.total_matched_tokens} tokens")
     print(f"    Active Cached Blocks     : {len(cache.node_map)}")
 
-    print(
-        "\n[SUCCESS] SGLang-style Radix Prefix Caching verified with 100% shared block hits!"
-    )
+    print("\n[SUCCESS] SGLang-style Radix Prefix Caching verified with 100% shared block hits!")
 
 
 if __name__ == "__main__":

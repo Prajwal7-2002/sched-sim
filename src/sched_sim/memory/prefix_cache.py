@@ -44,9 +44,7 @@ class PrefixCache:
 
     def __init__(self, block_size: int = 16):
         self.block_size = block_size
-        self.root = RadixTreeNode(
-            block_id=-1, block_hash=0, tokens=(), parent=None, depth=0
-        )
+        self.root = RadixTreeNode(block_id=-1, block_hash=0, tokens=(), parent=None, depth=0)
         self.active_request_nodes: dict[str, list[RadixTreeNode]] = {}
         self.node_map: dict[int, RadixTreeNode] = {}  # block_id -> node
 
@@ -63,18 +61,14 @@ class PrefixCache:
             return 0.0
         return self.total_hits / self.total_queries
 
-    def compute_block_hashes(
-        self, tokens: list[int]
-    ) -> list[tuple[int, tuple[int, ...]]]:
+    def compute_block_hashes(self, tokens: list[int]) -> list[tuple[int, tuple[int, ...]]]:
         """Compute chained rolling hashes for each 16-token block."""
         blocks: list[tuple[int, tuple[int, ...]]] = []
         num_full_blocks = len(tokens) // self.block_size
         prev_hash = 0
 
         for i in range(num_full_blocks):
-            block_tokens = tuple(
-                tokens[i * self.block_size : (i + 1) * self.block_size]
-            )
+            block_tokens = tuple(tokens[i * self.block_size : (i + 1) * self.block_size])
             # Hash depends on prior block context + current block tokens
             curr_hash = hash((prev_hash, block_tokens))
             blocks.append((curr_hash, block_tokens))
@@ -171,9 +165,7 @@ class PrefixCache:
 
         while len(freed_blocks) < num_blocks_needed:
             # Find all evictable leaf nodes (ref_count == 0 and no children)
-            evictable_leaves = [
-                node for node in self.node_map.values() if node.is_evictable
-            ]
+            evictable_leaves = [node for node in self.node_map.values() if node.is_evictable]
 
             if not evictable_leaves:
                 break  # No more evictable blocks

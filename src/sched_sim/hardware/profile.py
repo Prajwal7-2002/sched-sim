@@ -47,9 +47,7 @@ class HardwareProfile(BaseModel):
     @property
     def kv_bytes_per_token(self) -> int:
         """KV-cache memory required per token across all layers (2 * layers * kv_heads * head_dim * bytes)."""
-        return (
-            2 * self.num_layers * self.num_kv_heads * self.head_dim * self.dtype_bytes
-        )
+        return 2 * self.num_layers * self.num_kv_heads * self.head_dim * self.dtype_bytes
 
     @property
     def effective_tflops(self) -> float:

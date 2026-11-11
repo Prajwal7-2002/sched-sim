@@ -30,9 +30,7 @@ def print_single_run_summary(metrics: SimulationMetrics) -> None:
         "Completed / Total",
         f"{metrics.completed_requests} / {metrics.total_requests}",
     )
-    table.add_row(
-        "Workload Volume", "Dropped (SLO Violations)", f"{metrics.dropped_requests}"
-    )
+    table.add_row("Workload Volume", "Dropped (SLO Violations)", f"{metrics.dropped_requests}")
     table.add_row(
         "Memory Preemption",
         "Preemptions / Recomputes",
@@ -51,9 +49,7 @@ def print_single_run_summary(metrics: SimulationMetrics) -> None:
         "Throughput (Requests/s)",
         f"{metrics.throughput_req_per_s:.1f} req/s",
     )
-    table.add_row(
-        "Serving Economics", "SLO Goodput Ratio", f"{metrics.goodput_ratio:.1f}%"
-    )
+    table.add_row("Serving Economics", "SLO Goodput Ratio", f"{metrics.goodput_ratio:.1f}%")
 
     table.add_section()
     # Latencies

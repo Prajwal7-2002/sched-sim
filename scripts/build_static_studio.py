@@ -1011,11 +1011,7 @@ def main():
     hw_json_path = root / "hf_dataset" / "hardware_validation_reference.json"
     traces_json_path = root / "hf_dataset" / "serving_traces_master.json"
 
-    if (
-        not sched_json_path.exists()
-        or not hw_json_path.exists()
-        or not traces_json_path.exists()
-    ):
+    if not sched_json_path.exists() or not hw_json_path.exists() or not traces_json_path.exists():
         raise FileNotFoundError(
             "Dataset JSON files not found. Run generate_traces_dataset.py first!"
         )

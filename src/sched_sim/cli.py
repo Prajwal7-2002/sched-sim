@@ -43,9 +43,7 @@ def run(
     ] = "chunked",
     workload: Annotated[
         str,
-        typer.Option(
-            "--workload", "-w", help="Workload type: chatbot, rag, codegen, mixed"
-        ),
+        typer.Option("--workload", "-w", help="Workload type: chatbot, rag, codegen, mixed"),
     ] = "chatbot",
     hardware: Annotated[
         str,
@@ -70,9 +68,7 @@ def run(
     ] = "recompute",
     token_budget: Annotated[
         int,
-        typer.Option(
-            "--token-budget", help="Token budget per step for chunked prefill"
-        ),
+        typer.Option("--token-budget", help="Token budget per step for chunked prefill"),
     ] = 512,
     seed: Annotated[
         int, typer.Option("--seed", help="Random seed for deterministic simulation")
@@ -86,9 +82,7 @@ def run(
     ] = False,
     gantt: Annotated[
         bool,
-        typer.Option(
-            "--gantt/--no-gantt", help="Display ASCII Gantt execution timeline"
-        ),
+        typer.Option("--gantt/--no-gantt", help="Display ASCII Gantt execution timeline"),
     ] = True,
     output: Annotated[
         Path | None,
@@ -104,11 +98,7 @@ def run(
 ) -> None:
     """Run a single LLM serving simulation scenario."""
     hw = get_hardware_profile(hardware)
-    p_mode = (
-        PreemptionMode.SWAP
-        if preemption.lower() == "swap"
-        else PreemptionMode.RECOMPUTE
-    )
+    p_mode = PreemptionMode.SWAP if preemption.lower() == "swap" else PreemptionMode.RECOMPUTE
 
     try:
         sched_instance = create_scheduler(
@@ -170,9 +160,7 @@ def compare(
     ] = "fcfs,sjf,chunked,slo,disaggregated",
     workload: Annotated[
         str,
-        typer.Option(
-            "--workload", "-w", help="Workload type: chatbot, rag, codegen, mixed"
-        ),
+        typer.Option("--workload", "-w", help="Workload type: chatbot, rag, codegen, mixed"),
     ] = "rag",
     hardware: Annotated[
         str,
@@ -182,17 +170,13 @@ def compare(
             help="Hardware preset: a100, h100, t4, rtx3050, or path to custom JSON",
         ),
     ] = "a100",
-    rate: Annotated[
-        float, typer.Option("--rate", "-r", help="Arrival rate in requests/sec")
-    ] = 8.0,
+    rate: Annotated[float, typer.Option("--rate", "-r", help="Arrival rate in requests/sec")] = 8.0,
     duration: Annotated[
         float, typer.Option("--duration", "-d", help="Simulation duration in seconds")
     ] = 15.0,
     token_budget: Annotated[
         int,
-        typer.Option(
-            "--token-budget", help="Token budget per step for chunked prefill"
-        ),
+        typer.Option("--token-budget", help="Token budget per step for chunked prefill"),
     ] = 512,
     seed: Annotated[
         int, typer.Option("--seed", help="Random seed for deterministic comparison")
@@ -254,9 +238,7 @@ def trace(
             help="Enable Radix prefix caching in KV-cache block manager",
         ),
     ] = False,
-    gantt: Annotated[
-        bool, typer.Option("--gantt/--no-gantt", help="Show Gantt timeline")
-    ] = True,
+    gantt: Annotated[bool, typer.Option("--gantt/--no-gantt", help="Show Gantt timeline")] = True,
     trace_out: Annotated[
         Path | None,
         typer.Option(
@@ -291,9 +273,7 @@ def trace(
         print_gantt_timeline(sim.iteration_records, max_steps=12)
 
     if trace_out:
-        export_perfetto_trace(
-            metrics, sim.iteration_records, sim.all_requests, trace_out
-        )
+        export_perfetto_trace(metrics, sim.iteration_records, sim.all_requests, trace_out)
         console.print(
             f"\n[green]Saved Perfetto trace to {trace_out} (load at https://ui.perfetto.dev)[/green]"
         )
@@ -303,9 +283,7 @@ def trace(
 def calibrate(
     servebench_result: Annotated[
         Path,
-        typer.Option(
-            "--servebench-result", "-s", help="Path to servebench JSON export file"
-        ),
+        typer.Option("--servebench-result", "-s", help="Path to servebench JSON export file"),
     ],
     output_preset: Annotated[
         Path | None,
@@ -348,9 +326,7 @@ def calibrate(
     console.print(f"  * Measured TPOT mean: {measured_tpot:.2f} ms")
 
     model_name = data.get("config", {}).get("model", "") or ""
-    base_hw = (
-        PRESETS["rtx3050_05b"] if "0.5b" in model_name.lower() else PRESETS["rtx3050"]
-    )
+    base_hw = PRESETS["rtx3050_05b"] if "0.5b" in model_name.lower() else PRESETS["rtx3050"]
 
     # Base raw weight memory streaming time (ms) at theoretical DRAM bandwidth
     base_mem_ms = (
@@ -365,13 +341,11 @@ def calibrate(
     else:
         # High MBU or quantization: calibrate effective weights memory streaming bandwidth
         calibrated_launch = 0.02
-        calibrated_bw = (
-            base_hw.parameter_count_billions * 1e9 * base_hw.bytes_per_weight
-        ) / (max(0.001, (measured_tpot - 0.02) / 1000.0) * 1e9)
+        calibrated_bw = (base_hw.parameter_count_billions * 1e9 * base_hw.bytes_per_weight) / (
+            max(0.001, (measured_tpot - 0.02) / 1000.0) * 1e9
+        )
 
-    calibrated_efficiency = max(
-        0.30, min(0.75, (150.0 / max(40.0, measured_ttft)) * 0.48)
-    )
+    calibrated_efficiency = max(0.30, min(0.75, (150.0 / max(40.0, measured_ttft)) * 0.48))
 
     calibrated_hw = base_hw.model_copy(
         update={
@@ -382,12 +356,8 @@ def calibrate(
         }
     )
 
-    console.print(
-        f"  * Calibrated Launch Overhead: {calibrated_hw.kernel_launch_overhead_ms} ms"
-    )
-    console.print(
-        f"  * Calibrated Memory Bandwidth: {calibrated_hw.memory_bandwidth_gb_s} GB/s"
-    )
+    console.print(f"  * Calibrated Launch Overhead: {calibrated_hw.kernel_launch_overhead_ms} ms")
+    console.print(f"  * Calibrated Memory Bandwidth: {calibrated_hw.memory_bandwidth_gb_s} GB/s")
     console.print(
         f"  * Calibrated Tensor Core Efficiency: {calibrated_hw.tensor_core_efficiency * 100:.1f}%"
     )
@@ -406,9 +376,7 @@ def sweep(
     ] = "fcfs,chunked,slo,disaggregated",
     workload: Annotated[
         str,
-        typer.Option(
-            "--workload", "-w", help="Workload type: chatbot, rag, codegen, mixed"
-        ),
+        typer.Option("--workload", "-w", help="Workload type: chatbot, rag, codegen, mixed"),
     ] = "rag",
     hardware: Annotated[
         str,
@@ -466,9 +434,7 @@ def sweep(
             for key in scheduler_keys:
                 req_clones = [req.model_copy(deep=True) for req in base_requests]
                 try:
-                    sched_instance = create_scheduler(
-                        key, hw, token_budget=token_budget
-                    )
+                    sched_instance = create_scheduler(key, hw, token_budget=token_budget)
                 except KeyError as exc:
                     console.print(f"[bold red]Error:[/bold red] {exc}")
                     raise typer.Exit(1) from None
@@ -515,9 +481,7 @@ def sweep(
 @app.command()
 def info() -> None:
     """Display available silicon hardware presets and workload distribution profiles."""
-    hw_table = Table(
-        title="Hardware Silicon Presets", show_header=True, header_style="bold cyan"
-    )
+    hw_table = Table(title="Hardware Silicon Presets", show_header=True, header_style="bold cyan")
     hw_table.add_column("Key", style="bold yellow")
     hw_table.add_column("Silicon Target", style="white")
     hw_table.add_column("VRAM", justify="right")

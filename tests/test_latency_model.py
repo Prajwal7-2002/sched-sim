@@ -16,12 +16,8 @@ def test_roofline_prefill_and_decode():
     assert t_prefill_100 > model.launch_overhead_s
 
     # Decode latency scales with active context length in KV cache
-    t_decode_small_ctx = model.compute_decode_step_time(
-        batch_size=4, total_context_tokens=200
-    )
-    t_decode_large_ctx = model.compute_decode_step_time(
-        batch_size=4, total_context_tokens=4000
-    )
+    t_decode_small_ctx = model.compute_decode_step_time(batch_size=4, total_context_tokens=200)
+    t_decode_large_ctx = model.compute_decode_step_time(batch_size=4, total_context_tokens=4000)
 
     assert t_decode_large_ctx > t_decode_small_ctx
 

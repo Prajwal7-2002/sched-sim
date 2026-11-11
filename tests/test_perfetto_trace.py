@@ -19,18 +19,12 @@ def test_perfetto_trace_export(tmp_path: Path):
     bm = BlockManager(hw, block_size=16)
     lm = RooflineLatencyModel(hw)
     ph = PreemptionHandler(bm, lm, PreemptionMode.RECOMPUTE)
-    scheduler = ChunkedPrefillScheduler(
-        bm, lm, ph, max_batch_size=4, max_token_budget=128
-    )
+    scheduler = ChunkedPrefillScheduler(bm, lm, ph, max_batch_size=4, max_token_budget=128)
     sim = Simulator(hw, scheduler)
 
     reqs = [
-        Request(
-            request_id="req_001", arrived_at=0.0, prompt_tokens=256, output_tokens=10
-        ),
-        Request(
-            request_id="req_002", arrived_at=0.05, prompt_tokens=128, output_tokens=5
-        ),
+        Request(request_id="req_001", arrived_at=0.0, prompt_tokens=256, output_tokens=10),
+        Request(request_id="req_002", arrived_at=0.05, prompt_tokens=128, output_tokens=5),
     ]
     sim.submit_workload(reqs)
     metrics = sim.run()
@@ -48,16 +42,12 @@ def test_perfetto_trace_export(tmp_path: Path):
     assert len(events) > 5
 
     # Check for metadata events
-    process_names = [
-        e["args"]["name"] for e in events if e.get("name") == "process_name"
-    ]
+    process_names = [e["args"]["name"] for e in events if e.get("name") == "process_name"]
     assert any("GPU Accelerator" in name for name in process_names)
     assert any("Inference Request Queue" in name for name in process_names)
 
     # Check for complete slice events (ph == 'X')
-    gpu_slices = [
-        e for e in events if e.get("ph") == "X" and e.get("cat", "").startswith("gpu_")
-    ]
+    gpu_slices = [e for e in events if e.get("ph") == "X" and e.get("cat", "").startswith("gpu_")]
     assert len(gpu_slices) > 0
     first_slice = gpu_slices[0]
     assert "ts" in first_slice
@@ -65,9 +55,7 @@ def test_perfetto_trace_export(tmp_path: Path):
     assert first_slice["dur"] > 0
 
     # Check for request lifecycle slices
-    req_slices = [
-        e for e in events if e.get("ph") == "X" and e.get("cat") == "requests"
-    ]
+    req_slices = [e for e in events if e.get("ph") == "X" and e.get("cat") == "requests"]
     assert len(req_slices) == 2
     assert "req_001" in req_slices[0]["name"]
 

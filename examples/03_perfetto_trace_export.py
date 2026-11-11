@@ -51,14 +51,10 @@ def main() -> None:
     # 3. Execute Simulation
     metrics = sim.run()
     print(f"[2] Simulation completed in {metrics.simulation_duration_s:.3f}s:")
-    print(
-        f"    - Completed Requests : {metrics.completed_requests}/{metrics.total_requests}"
-    )
+    print(f"    - Completed Requests : {metrics.completed_requests}/{metrics.total_requests}")
     print(f"    - Mean TTFT          : {metrics.ttft_ms.mean:.2f} ms")
     print(f"    - Token Throughput   : {metrics.throughput_tok_per_s:.2f} tok/s")
-    print(
-        f"    - Iteration Slices   : {len(sim.iteration_records)} forward passes recorded"
-    )
+    print(f"    - Iteration Slices   : {len(sim.iteration_records)} forward passes recorded")
 
     # 4. Export Perfetto Trace
     output_dir = Path("examples/output")

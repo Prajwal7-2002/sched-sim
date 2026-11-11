@@ -137,12 +137,8 @@ def export_perfetto_trace(
                     "prompt_tokens": req.prompt_tokens,
                     "output_tokens": req.output_tokens,
                     "cached_prefix_tokens": req.cached_prefix_tokens,
-                    "ttft_ms": round(req.ttft * 1000, 2)
-                    if req.ttft is not None
-                    else None,
-                    "tpot_ms": round(req.tpot * 1000, 2)
-                    if req.tpot is not None
-                    else None,
+                    "ttft_ms": round(req.ttft * 1000, 2) if req.ttft is not None else None,
+                    "tpot_ms": round(req.tpot * 1000, 2) if req.tpot is not None else None,
                     "slo_met": req.slo_met,
                 },
             }
