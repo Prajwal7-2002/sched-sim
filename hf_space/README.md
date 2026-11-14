@@ -29,3 +29,21 @@ Interactive discrete-event simulation of continuous batching, chunked prefill (S
 * **Dataset:** [prajwalpujari16/llm-serving-traces](https://huggingface.co/datasets/prajwalpujari16/llm-serving-traces)
 * **PyPI:** [`pip install sched-sim`](https://pypi.org/project/sched-sim/)
 * **Author:** Prajwal Pujari ([@Prajwal7-2002](https://github.com/Prajwal7-2002))
+
+---
+
+### Citation & Attribution
+
+If you use sched-sim, its discrete-event scheduling engine, or serving arrival traces in your research, systems design, or publications, please cite:
+
+```bibtex
+@misc{pujari2024schedsim,
+  author = {Pujari, Prajwal},
+  title = {sched-sim: Discrete-Event Simulator for LLM Serving Schedulers and Batching Policies},
+  year = {2024},
+  publisher = {Hugging Face},
+  howpublished = {\url{https://huggingface.co/spaces/prajwalpujari16/sched-sim}},
+  url = {https://github.com/Prajwal7-2002/sched-sim}
+}
+```
+
