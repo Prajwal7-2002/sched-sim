@@ -44,18 +44,22 @@ sched-sim run --hardware local_calibrated.json --scheduler chunked --duration 10
 
 ---
 
-## 4. Empirical Ground-Truth Validation (RTX 3050 6GB Laptop GPU)
+## 4. Validation against real runs (RTX 3050 6GB Laptop GPU)
 
-To ensure simulation accuracy, `sched-sim` was validated against real silicon measurements collected via `servebench` running `qwen2.5:0.5b` on an **AMD Ryzen 5 6600H + NVIDIA RTX 3050 6GB Laptop GPU**:
+Calibration fits each engine's constants to a few measured points, so the error on those points says
+nothing about accuracy: it is small by construction. What matters is **held-out** rows that were not
+used for fitting.
 
-| Target Engine / Silicon | Metric | Real Hardware (`servebench`) | `sched-sim` Predicted | Error % |
-| :--- | :--- | :--- | :--- | :--- |
-| **Ollama (C++/CUDA runtime)** | **TTFT** | 44.33 ms | 45.00 ms (calibrated) | **< 1.5%** |
-| | **TPOT** | 4.96 ms | 4.96 ms (calibrated) | **< 0.1%** |
-| | **E2E** | 627.50 ms | 642.10 ms | **< 2.4%** |
-| **mini-infer (PyTorch runtime)** | **TTFT** | 121.80 ms | 122.50 ms (calibrated) | **< 0.6%** |
-| | **TPOT** | 103.24 ms | 103.20 ms (calibrated) | **< 0.1%** |
-| | **E2E** | 3322.30 ms | 3345.80 ms | **< 0.8%** |
+`benchmarks/validate_flagships.py` measures Ollama and mini-infer with `servebench` on an AMD Ryzen 5
+6600H + NVIDIA RTX 3050 6GB Laptop GPU, fits on the smallest model at 1 and 2 users, and predicts the
+rest. Full table: [`benchmarks/RESULTS.md`](https://github.com/Prajwal7-2002/sched-sim/blob/main/benchmarks/RESULTS.md).
 
-The roofline model accounts for both hardware-intrinsic bounds (DRAM bandwidth, Tensor Core TFLOPS) and software runtime overheads (Python dispatch, eager kernel execution, and queue waiting times), guaranteeing production-grade simulation fidelity.
+On the 11 held-out rows (Ollama 0.5B/1.5B/3B, mini-infer 0.5B/1.5B, 1 to 4 users):
+* **TPOT** (time per output token) was within ±12% in 7 of 11 rows.
+* **TTFT** (time to first token) was within ±12% in 1 of 11 rows; it was overestimated by 34–100% for
+  larger Ollama models and underestimated by 56–69% for mini-infer.
+
+So the simulator is useful for comparing schedulers and for decode-speed estimates on hardware it has
+been calibrated on, but its TTFT predictions are not reliable yet. Calibrate on your own hardware and
+check against held-out runs before trusting absolute numbers.
 

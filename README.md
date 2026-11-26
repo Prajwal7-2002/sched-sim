@@ -92,8 +92,9 @@ Benchmark all 5 scheduling policies on the exact same Poisson arrival trace:
 sched-sim compare --schedulers fcfs,sjf,chunked,slo,disaggregated --workload rag --hardware a100
 ```
 
-### 3. Replay Real-World Conversation Traces
-Replay Chatbot Arena conversation traces through the simulator:
+### 3. Replay a Trace File
+Replay a JSON trace through the simulator. The bundled files in `traces/` are small hand-written
+samples shaped like chat, RAG and code workloads; use your own exported traces for real traffic:
 ```bash
 sched-sim trace ./traces/lmsys_sample.json --scheduler chunked
 ```

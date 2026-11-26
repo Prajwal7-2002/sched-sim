@@ -88,3 +88,17 @@ Chronological record of architectural milestones, benchmark validations, and eng
   TTFT -56% to -69% because mini-infer prefills each request in its own forward pass, unlike the simulator's
   fused batches.
 - **Tests**: `tests/test_validation_benchmark.py` now runs on the bundled data and asserts the published bounds.
+
+## 2026-11-26: correcting published claims
+
+- The studio, HF Space and HF dataset card said simulation error "strictly remains below 4.8%". That
+  figure came from calibration rows fitted to themselves. Held-out validation (`benchmarks/RESULTS.md`)
+  shows TPOT within ±12% in 7 of 11 rows and TTFT within ±12% in 1 of 11. All pages now show the
+  held-out results, computed from `benchmarks/validation_results.json`.
+- The published validation table had 12 of the 15 rows; the three held-out mini-infer 1.5B rows were
+  missing. The dataset now reads every row from the validation output instead of a hand-copied list.
+- The bundled `traces/*.json` files are small hand-written samples, not data from LMSYS Chatbot Arena
+  as an earlier entry above says. They are now labelled `illustrative_sample`.
+- The scheduler comparison is simulated (A100 preset, Llama-3-8B profile); the dataset card used to
+  show a typed table that did not match the generated data. The card is now built from the data.
+- Validation ran on the RTX 3050 laptop only, not on a T4 as the studio said.
