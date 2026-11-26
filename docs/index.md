@@ -12,13 +12,13 @@ While continuous batching and Paged KV-caching provide the mechanism for dynamic
 3. What happens when physical KV-cache memory runs out (swapping vs recomputation).
 4. When to disaggregate prefill and decode phases onto specialized GPU worker pools.
 
-Testing these policies on real GPU clusters (e.g. 8x H100 nodes) is **slow, noisy, and expensive (\$20–\$50/hr)**. `sched-sim` simulates hours of multi-GPU serving traffic in **seconds on any standard CPU**, using validated analytical performance models calibrated against empirical silicon measurements from **[servebench](https://github.com/Prajwal7-2002/servebench)** and **[mini-infer](https://github.com/Prajwal7-2002/mini-infer)**.
+Testing these policies on real GPU clusters (e.g. 8x H100 nodes) is **slow, noisy, and expensive**. `sched-sim` simulates hours of multi-GPU serving traffic in **seconds on any standard CPU**, using validated analytical performance models calibrated against empirical silicon measurements from **[servebench](https://github.com/Prajwal7-2002/servebench)** and **[mini-infer](https://github.com/Prajwal7-2002/mini-infer)**.
 
 ---
 
 ## Quick Navigation
 
-* **[Interactive Studio (0ms CAD)](studio.html)** — Live in-browser serving simulation player, Sarathi chunked prefill vs FCFS Gantt visualizer, and silicon validation matrix.
+* **[Interactive Studio (0ms CAD)](studio.html)** — Live in-browser serving simulation player, Sarathi chunked prefill vs FCFS Gantt visualizer, and a simulator-vs-real-runs table.
 * **[Learning Guide: The Schedulers That Power LLM Serving](learn-scheduling.md)** — Core concepts, Little's Law, queueing theory, and hands-on experiments.
 * **[Theoretical Guide](theoretical-guide.md)** — Mathematical derivations of $M/G/1$ queues, roofline limits, and KV-cache network transfer physics.
 * **[Calibration Guide](calibration-guide.md)** — How to feed real silicon benchmarks from `servebench` and `mini-infer` into `sched-sim`.

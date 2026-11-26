@@ -1,4 +1,11 @@
-"""Generate empirical serving traces and scheduler benchmark comparison datasets for sched-sim."""
+"""Build the sched-sim Hugging Face dataset.
+
+- serving_traces_master: synthetic Poisson and bursty workloads plus the small hand-written sample
+  traces bundled in traces/ (illustrative shapes, not recorded from real users).
+- scheduler_benchmark_comparison: simulated results (A100 preset), not measurements.
+- hardware_validation_reference: real runs vs simulation, read from
+  benchmarks/validation_results.json.
+"""
 
 import csv
 import json
@@ -13,6 +20,174 @@ from sched_sim.workloads.generator import generate_workload
 from sched_sim.workloads.trace_loader import load_trace_file
 
 
+TOLERANCE_PCT = 12.0  # band used for the "within ±X%" summary of held-out rows
+
+
+def _table(rows: list[dict[str, Any]], cols: list[tuple[str, str]]) -> str:
+    head = "| " + " | ".join(h for _, h in cols) + " |\n"
+    sep = "| " + " | ".join(":---" if i == 0 else "---:" for i in range(len(cols))) + " |\n"
+    body = "".join("| " + " | ".join(str(r[k]) for k, _ in cols) + " |\n" for r in rows)
+    return head + sep + body
+
+
+def build_dataset_card(
+    traces: list[dict[str, Any]],
+    bench: list[dict[str, Any]],
+    validation: list[dict[str, Any]],
+    hw: Any,
+) -> str:
+    from collections import Counter
+
+    pattern_counts = Counter(t["traffic_pattern"] for t in traces)
+    held = [v for v in validation if v["split"] == "held-out"]
+    tpot_ok = sum(abs(v["tpot_error_pct"]) <= TOLERANCE_PCT for v in held)
+    ttft_ok = sum(abs(v["ttft_error_pct"]) <= TOLERANCE_PCT for v in held)
+    rag = [b for b in bench if b["workload_domain"] == "RAG"]
+
+    yaml = """---
+language:
+- en
+license: apache-2.0
+size_categories:
+- n<1K
+task_categories:
+- other
+tags:
+- llm-serving
+- inference
+- scheduler
+- simulation
+- traces
+- chunked-prefill
+pretty_name: "sched-sim: workload traces, simulated scheduler results and validation against real runs"
+configs:
+- config_name: serving_traces
+  data_files:
+  - split: train
+    path: serving_traces_master.json
+  default: true
+- config_name: scheduler_benchmarks
+  data_files:
+  - split: train
+    path: scheduler_benchmark_comparison.json
+- config_name: hardware_validation
+  data_files:
+  - split: train
+    path: hardware_validation_reference.json
+---
+"""
+    return (
+        yaml
+        + f"""
+# sched-sim: workload traces, simulated scheduler results and validation
+
+Three tables from the [`sched-sim`](https://github.com/Prajwal7-2002/sched-sim) discrete-event
+simulator of LLM serving schedulers. Read what each one is before using it: only the validation table
+contains real measurements.
+
+| Config | What it is | Rows |
+|:---|:---|---:|
+| `serving_traces` | Workload shapes: synthetic arrivals plus small hand-written samples. **Not recorded from real users.** | {len(traces)} |
+| `scheduler_benchmarks` | **Simulated** results for 5 schedulers. Not measured on hardware. | {len(bench)} |
+| `hardware_validation` | **Real runs** on one laptop GPU compared with the simulator's predictions | {len(validation)} |
+
+```python
+from datasets import load_dataset
+
+traces = load_dataset("prajwalpujari16/llm-serving-traces", "serving_traces", split="train")
+sim = load_dataset("prajwalpujari16/llm-serving-traces", "scheduler_benchmarks", split="train")
+val = load_dataset("prajwalpujari16/llm-serving-traces", "hardware_validation", split="train")
+```
+
+## 1. `serving_traces`
+
+| Traffic pattern | Requests |
+|:---|---:|
+"""
+        + "".join(f"| `{k}` | {v} |\n" for k, v in sorted(pattern_counts.items()))
+        + f"""
+`synthetic_*` rows come from sched-sim's workload generator. `illustrative_sample` rows are the small
+hand-written traces bundled in the repo (`traces/`), shaped like chat, RAG and code workloads; they are
+not sampled from LMSYS or any real service.
+
+## 2. `scheduler_benchmarks` (simulated)
+
+Simulated with the `a100` hardware preset ({hw.name}, model profile `{hw.model_name}`), Poisson
+arrivals at 8 requests/s for 6 s, seed 42, recompute preemption, token budget 512. These are the
+simulator's outputs, not hardware measurements. RAG workload:
+
+"""
+        + _table(
+            rag,
+            [
+                ("scheduler_policy", "Scheduler"),
+                ("ttft_p50_ms", "TTFT p50 (ms)"),
+                ("ttft_p99_ms", "TTFT p99 (ms)"),
+                ("tpot_p50_ms", "TPOT p50 (ms)"),
+                ("tpot_p99_ms", "TPOT p99 (ms)"),
+                ("goodput_pct", "Goodput (%)"),
+            ],
+        )
+        + f"""
+All workloads (RAG, chatbot, codegen) are in the file.
+
+## 3. `hardware_validation` (real runs vs simulation)
+
+Measured with `servebench` on an NVIDIA GeForce RTX 3050 6 GB Laptop GPU (AMD Ryzen 5 6600H): closed
+loop, ~286-token prompts, 128 output tokens, 24 requests per level. **calibration** rows were used to
+fit each engine's constants; **held-out** rows were not used and are true predictions.
+
+Held-out rows: TPOT within ±{TOLERANCE_PCT:.0f}% in **{tpot_ok} of {len(held)}**; TTFT within
+±{TOLERANCE_PCT:.0f}% in **{ttft_ok} of {len(held)}**. Decode-speed (TPOT) predictions are closer
+than time-to-first-token (TTFT) predictions, which are off by a wide margin on most held-out rows.
+
+"""
+        + _table(
+            validation,
+            [
+                ("engine", "Engine"),
+                ("model_size", "Model"),
+                ("concurrency", "Users"),
+                ("split", "Row"),
+                ("ttft_real_ms", "TTFT real (ms)"),
+                ("ttft_sim_ms", "TTFT sim (ms)"),
+                ("ttft_error_pct", "TTFT err (%)"),
+                ("tpot_real_ms", "TPOT real (ms)"),
+                ("tpot_sim_ms", "TPOT sim (ms)"),
+                ("tpot_error_pct", "TPOT err (%)"),
+            ],
+        )
+        + r"""
+## Limitations
+
+- Validation covers one laptop GPU, two engines and models up to 3B. Other hardware is untested.
+- Scheduler comparisons are simulated; differences between policies are the model's predictions.
+- Traces are synthetic or hand-written, so they show workload shapes, not real user behaviour.
+
+## Reproduce
+
+```bash
+pip install sched-sim
+sched-sim compare --workload rag --hardware a100          # simulated comparison
+uv run python benchmarks/validate_flagships.py            # validation (from a repo checkout)
+uv run python scripts/generate_traces_dataset.py          # rebuild this dataset
+```
+
+## Citation
+
+```bibtex
+@misc{pujari2026schedsim,
+  author = {Prajwal Pujari},
+  title = {sched-sim: LLM Serving Workload Traces, Simulated Scheduler Results and Validation},
+  year = {2026},
+  publisher = {Hugging Face},
+  howpublished = {\url{https://huggingface.co/datasets/prajwalpujari16/llm-serving-traces}}
+}
+```
+"""
+    )
+
+
 def main():
     root = Path(__file__).resolve().parent.parent
     out_dir = root / "hf_dataset"
@@ -22,11 +197,11 @@ def main():
 
     master_traces: list[dict[str, Any]] = []
 
-    # 1. Real trace files
+    # 1. Bundled sample trace files (hand-written, illustrative)
     trace_files = [
-        ("lmsys_sample.json", "Chatbot / Conversational", "real_empirical"),
-        ("rag_stress_sample.json", "Long-Context RAG", "real_empirical"),
-        ("code_generation_sample.json", "Code Generation / Agent", "real_empirical"),
+        ("lmsys_sample.json", "Chatbot / Conversational", "illustrative_sample"),
+        ("rag_stress_sample.json", "Long-Context RAG", "illustrative_sample"),
+        ("code_generation_sample.json", "Code Generation / Agent", "illustrative_sample"),
     ]
 
     for fname, category, pattern in trace_files:
@@ -112,7 +287,7 @@ def main():
     print(f"✓ Wrote {traces_csv} ({len(master_traces)} requests)")
 
     # 3. Benchmark Comparisons across 5 Schedulers on A100
-    print("Running empirical scheduler simulations on A100 GPU...")
+    print("Simulating 5 schedulers on the A100 preset (simulated, not measured)...")
     hw = get_hardware_profile("a100")
     p_mode = PreemptionMode.RECOMPUTE
 
@@ -172,151 +347,24 @@ def main():
     print(f"✓ Wrote {bench_csv} ({len(benchmark_rows)} benchmark rows)")
 
     # 4. Hardware Calibration vs Simulation Validation Data
+    # Read every row produced by benchmarks/validate_flagships.py (never hand-copied).
+    raw_validation = json.loads(
+        (root / "benchmarks" / "validation_results.json").read_text(encoding="utf-8")
+    )
     validation_rows = [
         {
-            "engine": "Ollama 0.35.1 (llama.cpp, q4_k_m)",
-            "model_size": "0.5b",
-            "concurrency": 1,
-            "split": "calibration",
-            "ttft_real_ms": 44.3,
-            "ttft_sim_ms": 44.3,
-            "ttft_error_pct": 0.0,
-            "tpot_real_ms": 5.0,
-            "tpot_sim_ms": 5.0,
-            "tpot_error_pct": 1.5,
-        },
-        {
-            "engine": "Ollama 0.35.1 (llama.cpp, q4_k_m)",
-            "model_size": "0.5b",
-            "concurrency": 2,
-            "split": "calibration",
-            "ttft_real_ms": 60.7,
-            "ttft_sim_ms": 54.9,
-            "ttft_error_pct": -9.6,
-            "tpot_real_ms": 5.9,
-            "tpot_sim_ms": 6.3,
-            "tpot_error_pct": 6.4,
-        },
-        {
-            "engine": "Ollama 0.35.1 (llama.cpp, q4_k_m)",
-            "model_size": "0.5b",
-            "concurrency": 4,
-            "split": "held-out",
-            "ttft_real_ms": 103.5,
-            "ttft_sim_ms": 113.2,
-            "ttft_error_pct": 9.4,
-            "tpot_real_ms": 8.3,
-            "tpot_sim_ms": 8.4,
-            "tpot_error_pct": 0.7,
-        },
-        {
-            "engine": "Ollama 0.35.1 (llama.cpp, q4_k_m)",
-            "model_size": "1.5b",
-            "concurrency": 1,
-            "split": "held-out",
-            "ttft_real_ms": 80.7,
-            "ttft_sim_ms": 136.8,
-            "ttft_error_pct": 69.6,
-            "tpot_real_ms": 10.7,
-            "tpot_sim_ms": 10.7,
-            "tpot_error_pct": 0.3,
-        },
-        {
-            "engine": "Ollama 0.35.1 (llama.cpp, q4_k_m)",
-            "model_size": "1.5b",
-            "concurrency": 2,
-            "split": "held-out",
-            "ttft_real_ms": 125.3,
-            "ttft_sim_ms": 215.6,
-            "ttft_error_pct": 72.1,
-            "tpot_real_ms": 14.9,
-            "tpot_sim_ms": 16.6,
-            "tpot_error_pct": 11.3,
-        },
-        {
-            "engine": "Ollama 0.35.1 (llama.cpp, q4_k_m)",
-            "model_size": "1.5b",
-            "concurrency": 4,
-            "split": "held-out",
-            "ttft_real_ms": 266.9,
-            "ttft_sim_ms": 358.2,
-            "ttft_error_pct": 34.2,
-            "tpot_real_ms": 15.8,
-            "tpot_sim_ms": 29.1,
-            "tpot_error_pct": 83.7,
-        },
-        {
-            "engine": "Ollama 0.35.1 (llama.cpp, q4_k_m)",
-            "model_size": "3b",
-            "concurrency": 1,
-            "split": "held-out",
-            "ttft_real_ms": 136.7,
-            "ttft_sim_ms": 272.8,
-            "ttft_error_pct": 99.6,
-            "tpot_real_ms": 17.8,
-            "tpot_sim_ms": 17.8,
-            "tpot_error_pct": 0.0,
-        },
-        {
-            "engine": "Ollama 0.35.1 (llama.cpp, q4_k_m)",
-            "model_size": "3b",
-            "concurrency": 2,
-            "split": "held-out",
-            "ttft_real_ms": 248.2,
-            "ttft_sim_ms": 418.1,
-            "ttft_error_pct": 68.5,
-            "tpot_real_ms": 19.3,
-            "tpot_sim_ms": 19.9,
-            "tpot_error_pct": 2.9,
-        },
-        {
-            "engine": "Ollama 0.35.1 (llama.cpp, q4_k_m)",
-            "model_size": "3b",
-            "concurrency": 4,
-            "split": "held-out",
-            "ttft_real_ms": 472.1,
-            "ttft_sim_ms": 890.8,
-            "ttft_error_pct": 88.7,
-            "tpot_real_ms": 23.8,
-            "tpot_sim_ms": 22.6,
-            "tpot_error_pct": -5.1,
-        },
-        {
-            "engine": "mini-infer 0.2.9 (PyTorch eager, bf16)",
-            "model_size": "0.5b",
-            "concurrency": 1,
-            "split": "calibration",
-            "ttft_real_ms": 120.3,
-            "ttft_sim_ms": 120.3,
-            "ttft_error_pct": 0.0,
-            "tpot_real_ms": 117.0,
-            "tpot_sim_ms": 118.0,
-            "tpot_error_pct": 0.8,
-        },
-        {
-            "engine": "mini-infer 0.2.9 (PyTorch eager, bf16)",
-            "model_size": "0.5b",
-            "concurrency": 2,
-            "split": "calibration",
-            "ttft_real_ms": 290.9,
-            "ttft_sim_ms": 240.3,
-            "ttft_error_pct": -17.4,
-            "tpot_real_ms": 129.7,
-            "tpot_sim_ms": 130.8,
-            "tpot_error_pct": 0.8,
-        },
-        {
-            "engine": "mini-infer 0.2.9 (PyTorch eager, bf16)",
-            "model_size": "0.5b",
-            "concurrency": 4,
-            "split": "held-out",
-            "ttft_real_ms": 794.2,
-            "ttft_sim_ms": 289.4,
-            "ttft_error_pct": -63.6,
-            "tpot_real_ms": 147.7,
-            "tpot_sim_ms": 155.6,
-            "tpot_error_pct": 5.4,
-        },
+            "engine": r["engine"],
+            "model_size": r["model"],
+            "concurrency": r["users"],
+            "split": "held-out" if r["held_out"] else "calibration",
+            "ttft_real_ms": r["real_ttft_ms"],
+            "ttft_sim_ms": r["sim_ttft_ms"],
+            "ttft_error_pct": r["err_ttft_ms_pct"],
+            "tpot_real_ms": r["real_tpot_ms"],
+            "tpot_sim_ms": r["sim_tpot_ms"],
+            "tpot_error_pct": r["err_tpot_ms_pct"],
+        }
+        for r in raw_validation
     ]
 
     val_csv = out_dir / "hardware_validation_reference.csv"
@@ -330,143 +378,8 @@ def main():
     )
     print(f"✓ Wrote {val_csv} ({len(validation_rows)} validation rows)")
 
-    # 5. Dataset Card README.md
-    dataset_card = r"""---
-language:
-- en
-license: apache-2.0
-size_categories:
-- n<1K
-task_categories:
-- text-generation
-- other
-tags:
-- llm-serving
-- inference
-- queueing-theory
-- vllm
-- sglang
-- scheduler
-- traces
-- benchmark
-- evaluation
-- preemption
-- chunked-prefill
-pretty_name: "LLM Serving Traces & Scheduler Performance Benchmark"
-configs:
-- config_name: serving_traces
-  data_files:
-  - split: train
-    path: serving_traces_master.json
-  default: true
-- config_name: scheduler_benchmarks
-  data_files:
-  - split: train
-    path: scheduler_benchmark_comparison.json
-- config_name: hardware_validation
-  data_files:
-  - split: train
-    path: hardware_validation_reference.json
----
-
-# ⏱️ LLM Serving Traces & Scheduler Performance Benchmark
-
-A curated empirical benchmark dataset containing real and synthetic **LLM request arrival traces** (conversational LMSYS, long-context RAG, code generation) and empirical scheduling policy comparisons (FCFS, SJF, Chunked Prefill, SLO-Aware, Disaggregated Serving) generated by the `sched-sim` discrete-event engine.
-
-* **GitHub Repository:** [Prajwal7-2002/sched-sim](https://github.com/Prajwal7-2002/sched-sim)
-* **PyPI Engine:** [`pip install sched-sim`](https://pypi.org/project/sched-sim/)
-* **Documentation:** [prajwal7-2002.github.io/sched-sim](https://prajwal7-2002.github.io/sched-sim/)
-* **Author:** Prajwal Pujari ([@Prajwal7-2002](https://github.com/Prajwal7-2002))
-
----
-
-## 📊 Quick Start
-
-Load the traces and scheduling benchmarks in Python with one line:
-
-```python
-from datasets import load_dataset
-
-# Load all three benchmark splits
-dataset = load_dataset("prajwalpujari16/llm-serving-traces")
-
-# Inspect master arrival traces
-df_traces = dataset["serving_traces_master"].to_pandas()
-print(df_traces[["request_id", "workload_category", "prompt_tokens", "output_tokens", "slo_ttft_ms"]])
-
-# Inspect scheduler comparison leaderboard
-df_sched = dataset["scheduler_benchmark_comparison"].to_pandas()
-print(df_sched[["scheduler_policy", "workload_domain", "ttft_p99_ms", "goodput_pct"]])
-```
-
----
-
-## 🔬 Dataset Splits & Tables
-
-### 1. `serving_traces_master.csv`
-Contains arrival timestamps, prompt lengths, output lengths, prefill-to-decode ratios, and SLO latency thresholds across:
-* **Chatbot / Conversational:** Dialogue requests from LMSYS Chatbot Arena with short prompts and moderate output tokens.
-* **Long-Context RAG:** Document ingestion workloads with extreme prefill-to-decode ratios ($50:1$) causing severe prefill-decode interference.
-* **Code Generation / Autonomous Agents:** Large output generation workloads with high memory consumption per request.
-* **Synthetic Poisson & Bursty Traffic:** Standardized arrival processes ($\lambda = 10 \to 15\text{ req/s}$) for queueing theory and Little's Law validation.
-
-### 2. `scheduler_benchmark_comparison.csv`
-Empirical performance metrics across 5 production scheduling policies on NVIDIA A100 (80GB):
-
-| Scheduler Policy | Workload Domain | TTFT p50 (ms) | TTFT p99 (ms) | TPOT p50 (ms) | TPOT p99 (ms) | Goodput (%) |
-| :--- | :---: | :---: | :---: | :---: | :---: | :---: |
-| **FCFS (Continuous Batching)** | RAG | 663.2 | 1704.5 | 32.2 | 69.5 | 40.0% |
-| **SJF (Shortest Prompt First)** | RAG | 663.2 | 1704.5 | 32.2 | 69.5 | 40.0% |
-| **Chunked Prefill (Budget: 512t)** | RAG | **625.0** | **1330.1** | **28.7** | **46.7** | **75.0%** |
-| **SLO-Aware (Goodput Maximizer)** | RAG | 726.4 | 1704.5 | 31.3 | 50.0 | 47.5% |
-| **Disaggregated (DistServe)** | RAG | 663.2 | 1704.5 | 32.4 | 69.6 | 40.0% |
-
-### 3. `hardware_validation_reference.csv`
-Empirical silicon ground-truth validation comparing discrete-event simulation predictions against physical GPU hardware runs (NVIDIA RTX 3050 Laptop GPU & AMD Ryzen 5 6600H) running Ollama (`llama.cpp`) and `mini-infer` (`PyTorch eager`).
-
----
-
-## 🎯 Systems & Queueing Theory Insights
-
-1. **The Prefill-Decode Interference Problem:**
-   * In continuous batching, a 4,000-token RAG prefill request blocks active decode iterations. Decode requests experience a massive Time-Between-Tokens (TPOT) latency spike (from 28ms to >70ms).
-   * **Chunked Prefill** splits large prefills into chunks of budget $C=512$, keeping active decode steps unstarved and **boosting Goodput from 40.0% to 75.0%**.
-
-2. **Little's Law in Serving Clusters:**
-   * Under steady-state arrival rate $\lambda$ and average latency $W$, the number of concurrent requests in flight is:
-     $$L = \lambda \cdot W$$
-   * For memory-bound KV-cache allocation, when $L \cdot \text{VRAM}_{\text{req}} > \text{VRAM}_{\text{GPU}}$, queue backpressure spikes exponentially.
-
----
-
-## 🛠️ Reproducing Locally
-
-```bash
-# Install the zero-dependency discrete-event simulator
-pip install sched-sim
-
-# Run the 5-scheduler comparison on RAG traffic
-sched-sim compare --workload rag --hardware a100
-
-# Export Chromium / Perfetto trace for visual inspection
-sched-sim run --scheduler chunked --trace-out trace.json
-```
-
----
-
-## 📜 Citation
-
-```bibtex
-@misc{pujari2026schedsim,
-  author = {Prajwal Pujari},
-  title = {LLM Serving Traces & Scheduler Performance Benchmark},
-  year = {2026},
-  publisher = {Hugging Face},
-  journal = {Hugging Face Data repository},
-  howpublished = {\\url{https://huggingface.co/datasets/prajwalpujari16/llm-serving-traces}}
-}
-```
-"""
+    # 5. Dataset Card README.md (every table and count is computed from the rows above)
+    dataset_card = build_dataset_card(master_traces, benchmark_rows, validation_rows, hw)
     (out_dir / "README.md").write_text(dataset_card, encoding="utf-8")
     print(f"✓ Wrote Dataset Card: {out_dir / 'README.md'}")
     print("\n🎉 sched-sim serving traces dataset successfully generated!")

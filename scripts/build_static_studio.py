@@ -11,6 +11,17 @@ def generate_html(schedulers_data: list, hardware_data: list, traces_data: list)
         traces_data[:50]
     )  # Embed first 50 rich traces for table & simulation player
 
+    # Every figure in the page text is computed from the datasets here.
+    tol = 12.0
+    held = [d for d in hardware_data if d["split"] == "held-out"]
+    tpot_ok = sum(abs(d["tpot_error_pct"]) <= tol for d in held)
+    ttft_ok = sum(abs(d["ttft_error_pct"]) <= tol for d in held)
+    n_held = len(held)
+    n_traces = len(traces_data)
+    n_synthetic = sum(t["traffic_pattern"].startswith("synthetic") for t in traces_data)
+    n_samples = n_traces - n_synthetic
+    n_policies = len({d["scheduler_policy"] for d in schedulers_data})
+
     html_content = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -461,10 +472,10 @@ def generate_html(schedulers_data: list, hardware_data: list, traces_data: list)
     </div>
     <div class="header-links">
       <a class="btn-link" href="https://huggingface.co/datasets/prajwalpujari16/llm-serving-traces" target="_blank">
-        🤗 HF Dataset (165 Traces)
+        🤗 HF Dataset
       </a>
       <a class="btn-link" href="https://pypi.org/project/sched-sim/" target="_blank">
-        📦 PyPI v0.2.1
+        📦 PyPI v0.2.3
       </a>
       <a class="btn-link" href="https://github.com/Prajwal7-2002/sched-sim" target="_blank">
         ★ GitHub
@@ -482,21 +493,21 @@ def generate_html(schedulers_data: list, hardware_data: list, traces_data: list)
       <div>
         <h1 class="hero-h1">Discrete-Event LLM Serving Scheduler & Gantt Studio</h1>
         <p class="hero-p">
-          Compare continuous batching FCFS, SJF, Sarathi Chunked Prefill, and Disaggregated serving. Simulate Head-of-Line prefill blocking, inspect Time-to-First-Token (TTFT) and Inter-Token Latency (TPOT), and validate against empirical silicon.
+          Compare continuous batching FCFS, SJF, Sarathi Chunked Prefill, and Disaggregated serving. Simulate Head-of-Line prefill blocking, inspect Time-to-First-Token (TTFT) and Inter-Token Latency (TPOT), and see how the simulator compares with real runs on one laptop GPU.
         </p>
       </div>
       <div class="hero-stats">
         <div class="stat-box">
-          <div class="stat-val" id="stat-policies">5</div>
+          <div class="stat-val" id="stat-policies">{n_policies}</div>
           <div class="stat-lbl">Schedulers</div>
         </div>
         <div class="stat-box">
-          <div class="stat-val">&lt; 4.8%</div>
-          <div class="stat-lbl">Hardware Error</div>
+          <div class="stat-val">{tpot_ok}/{n_held}</div>
+          <div class="stat-lbl">Held-out TPOT within ±{tol:.0f}%</div>
         </div>
         <div class="stat-box">
-          <div class="stat-val">165</div>
-          <div class="stat-lbl">Serving Traces</div>
+          <div class="stat-val">{n_traces}</div>
+          <div class="stat-lbl">Workload traces (synthetic + samples)</div>
         </div>
       </div>
     </div>
@@ -505,7 +516,7 @@ def generate_html(schedulers_data: list, hardware_data: list, traces_data: list)
     <div class="tab-bar">
       <button class="tab-btn active" onclick="switchTab('bench')">📊 Policy Benchmark Matrix</button>
       <button class="tab-btn" onclick="switchTab('gantt')">🎬 Live Gantt & HOL Blocking Simulator</button>
-      <button class="tab-btn" onclick="switchTab('hardware')">⚡ Silicon Validation Lab</button>
+      <button class="tab-btn" onclick="switchTab('hardware')">⚡ Simulator vs Real Runs</button>
       <button class="tab-btn" onclick="switchTab('traces')">📋 Benchmark Traces Explorer</button>
       <button class="tab-btn" onclick="switchTab('cli')">💻 Python CLI Companion</button>
     </div>
@@ -515,8 +526,8 @@ def generate_html(schedulers_data: list, hardware_data: list, traces_data: list)
       <div class="card">
         <div class="card-header">
           <div>
-            <div class="card-title">Empirical Scheduler Comparison Matrix</div>
-            <div class="card-sub">Discrete-event serving metrics simulated on LLaMA-3.2-1B under realistic Poisson traffic</div>
+            <div class="card-title">Simulated Scheduler Comparison</div>
+            <div class="card-sub">Simulated by sched-sim with the A100 preset (Llama-3-8B profile) under Poisson arrivals. These are model predictions, not hardware measurements.</div>
           </div>
           <div class="control-group">
             <span style="font-size:12px; color:var(--text-muted);">Workload Domain:</span>
@@ -597,19 +608,19 @@ def generate_html(schedulers_data: list, hardware_data: list, traces_data: list)
             FCFS Head-of-Line (HOL) Blocking Analysis
           </h4>
           <p style="font-size: 12px; color: var(--text-muted); line-height: 1.6;" id="sim-explanation-body">
-            In standard continuous batching FCFS, when Request #1 arrives with a 2,048-token prompt, its prefill phase consumes the full GPU compute budget for 120ms. During this entire prefill burst, ongoing decoding requests (Req #2, #3, #4) cannot generate any tokens, causing their inter-token latency (TPOT) to explode from 25ms to over 140ms.
+            Illustration (not measured): in continuous batching FCFS, when Request #1 arrives with a 2,048-token prompt, its prefill uses the whole step. While it runs, ongoing decoding requests (Req #2, #3, #4) cannot generate tokens, so their inter-token latency (TPOT) spikes for the length of that prefill.
           </p>
         </div>
       </div>
     </div>
 
-    <!-- TAB 3: SILICON VALIDATION LAB -->
+    <!-- TAB 3: SIMULATOR VS REAL RUNS -->
     <div id="tab-hardware" class="tab-content">
       <div class="card">
         <div class="card-header">
           <div>
-            <div class="card-title">Physical Silicon Validation Matrix</div>
-            <div class="card-sub">Empirical validation against dual Tesla T4 & RTX 3050 Laptop across concurrency levels</div>
+            <div class="card-title">Simulator vs Real Runs</div>
+            <div class="card-sub">Measured with servebench on an NVIDIA RTX 3050 6 GB Laptop GPU. Calibration rows were used to fit each engine's constants; held-out rows are true predictions.</div>
           </div>
         </div>
 
@@ -619,7 +630,8 @@ def generate_html(schedulers_data: list, hardware_data: list, traces_data: list)
               <tr>
                 <th>Inference Engine</th>
                 <th>Model</th>
-                <th>Concurrency</th>
+                <th>Users</th>
+                <th>Row</th>
                 <th>TTFT Real (ms)</th>
                 <th>TTFT Sim (ms)</th>
                 <th>TTFT Error %</th>
@@ -633,8 +645,8 @@ def generate_html(schedulers_data: list, hardware_data: list, traces_data: list)
         </div>
 
         <div style="margin-top: 16px; background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.2); border-radius: 8px; padding: 14px; font-size: 12px; color: var(--text-muted); line-height: 1.6;">
-          <strong style="color:var(--accent);">✓ Roofline Latency Precision:</strong>
-          All discrete-event execution steps utilize accurate analytical FLOP-bound and memory-bandwidth bound models with cache KV pagination. Simulation errors strictly remain below <strong>4.8%</strong> compared to physical PyTorch/vLLM/Ollama silicon telemetry.
+          <strong style="color:var(--accent);">What this shows:</strong>
+          On held-out rows, predicted TPOT was within ±{tol:.0f}% of the real value in <strong>{tpot_ok} of {n_held}</strong> cases, and TTFT in <strong>{ttft_ok} of {n_held}</strong>. Decode-speed predictions are closer than time-to-first-token predictions, which are off by a wide margin on most held-out rows. One laptop GPU, two engines, models up to 3B.
         </div>
       </div>
     </div>
@@ -644,8 +656,8 @@ def generate_html(schedulers_data: list, hardware_data: list, traces_data: list)
       <div class="card">
         <div class="card-header">
           <div>
-            <div class="card-title">Real Empirical Serving Traces (165 Requests)</div>
-            <div class="card-sub">Trace dataset capturing real LMSYS conversation distributions, RAG lookups, and Code generation</div>
+            <div class="card-title">Workload Traces ({n_traces} requests)</div>
+            <div class="card-sub">{n_synthetic} synthetic (Poisson and bursty arrivals) plus {n_samples} hand-written sample requests shaped like chat, RAG and code workloads. Not recorded from real users.</div>
           </div>
         </div>
 
@@ -691,11 +703,14 @@ def generate_html(schedulers_data: list, hardware_data: list, traces_data: list)
         <div style="margin-bottom: 20px;">
           <div style="font-size: 13px; font-weight: 600; color: var(--cyan); margin-bottom: 8px;">Run Serving Simulation CLI:</div>
           <div class="code-box">
-# Run Sarathi Chunked Prefill simulation on RAG traces
-sched-sim run --scheduler chunked --chunk-budget 512 --trace traces/rag_workload.json
+# Chunked prefill on a synthetic RAG workload (simulated A100)
+sched-sim run --scheduler chunked --token-budget 512 --workload rag --hardware a100
 
-# Compare continuous batching vs SJF
-sched-sim compare --schedulers fcfs,sjf,chunked,disaggregated --output results.json
+# Replay a bundled sample trace
+sched-sim trace traces/rag_stress_sample.json --scheduler chunked
+
+# Compare schedulers on the same workload
+sched-sim compare --schedulers fcfs,sjf,chunked,disaggregated --workload rag
             <button class="copy-btn" onclick="copyCode(this)">Copy</button>
           </div>
         </div>
@@ -703,19 +718,19 @@ sched-sim compare --schedulers fcfs,sjf,chunked,disaggregated --output results.j
         <div>
           <div style="font-size: 13px; font-weight: 600; color: var(--accent); margin-bottom: 8px;">Python API Integration:</div>
           <div class="code-box">
-from sched_sim.core.engine import EventEngine
-from sched_sim.schedulers.chunked import ChunkedPrefillScheduler
-from sched_sim.hardware.gpu import GPUProfile
+from sched_sim.core.event_engine import Simulator
+from sched_sim.hardware.presets import get_hardware_profile
+from sched_sim.schedulers.factory import create_scheduler
+from sched_sim.workloads.generator import generate_workload
 
-# Configure hardware profile and scheduler
-gpu = GPUProfile.from_preset("rtx_4090")
-scheduler = ChunkedPrefillScheduler(chunk_budget_tokens=512)
+hw = get_hardware_profile("rtx3050")
+scheduler = create_scheduler("chunked", hw, token_budget=512)
+sim = Simulator(hw, scheduler)
+sim.submit_workload(generate_workload(rate_req_per_s=4.0, duration_s=10.0, workload_type="chatbot", seed=0))
+m = sim.run()
 
-engine = EventEngine(hardware=gpu, scheduler=scheduler)
-results = engine.simulate(trace_path="traces/lmsys_sample.json")
-
-print(f"Throughput: {{results.throughput_tok_per_s:.1f}} tok/s")
-print(f"TTFT P99: {{results.ttft_p99_ms:.1f}} ms | TPOT P99: {{results.tpot_p99_ms:.1f}} ms")
+print(f"Throughput: {{m.throughput_tok_per_s:.1f}} tok/s (simulated)")
+print(f"TTFT p99: {{m.ttft_ms.p99:.1f}} ms | TPOT p99: {{m.tpot_ms.p99:.1f}} ms")
             <button class="copy-btn" onclick="copyCode(this)">Copy</button>
           </div>
         </div>
@@ -828,19 +843,19 @@ print(f"TTFT P99: {{results.ttft_p99_ms:.1f}} ms | TPOT P99: {{results.tpot_p99_
         titleEl.textContent = 'Continuous Batching FCFS: Severe Head-of-Line Starvation';
         titleEl.style.color = 'var(--rose)';
         bodyEl.innerHTML = `
-          <strong>Head-of-Line Bottleneck:</strong> When Request #1 arrives with a heavy prompt (2048 tokens), its monolithic prefill hogs the GPU execution pipeline for 140ms. Continuous batching cannot preempt this prefill, so Requests #2, #3, and #4 experience a <strong>140ms pause in token generation (TPOT spike)</strong>.
+          <strong>Head-of-Line Bottleneck:</strong> When Request #1 arrives with a heavy prompt (2048 tokens), its prefill takes over whole steps. Continuous batching cannot preempt it, so Requests #2, #3 and #4 <strong>pause token generation (a TPOT spike)</strong> until it finishes. (Illustration, not measured.)
         `;
       }} else if (currentSimPolicy === 'chunked') {{
         titleEl.textContent = 'Sarathi Chunked Prefill (C=512): Smooth Token Generation Cadence';
         titleEl.style.color = 'var(--accent)';
         bodyEl.innerHTML = `
-          <strong>Chunking Piggybacking:</strong> The 2,048-token prefill is sliced into 4 discrete chunks of 512 tokens each. Every iteration executes 1 chunk alongside decode steps for ongoing requests. Inter-token latency never exceeds <strong>35ms</strong>, eliminating user-perceived stutter!
+          <strong>Chunking Piggybacking:</strong> The 2,048-token prefill is sliced into 4 discrete chunks of 512 tokens each. Every iteration executes 1 chunk alongside decode steps for ongoing requests, so <strong>decoding keeps going at a steadier pace</strong> while the long prompt is processed. (Illustration, not measured.)
         `;
       }} else if (currentSimPolicy === 'sjf') {{
         titleEl.textContent = 'Shortest Job First (SJF): TTFT Minimization';
         titleEl.style.color = 'var(--cyan)';
         bodyEl.innerHTML = `
-          <strong>Prompt Length Prioritization:</strong> Short queries (Req #2 and #4) jump ahead of the massive document lookup (Req #1), dropping average TTFT by <strong>68%</strong> for interactive user traffic.
+          <strong>Prompt Length Prioritization:</strong> Short queries (Req #2 and #4) jump ahead of the long document lookup (Req #1), so <strong>short requests get their first token sooner</strong>, at the cost of the long one waiting. (Illustration, not measured.)
         `;
       }}
 
@@ -938,7 +953,13 @@ print(f"TTFT P99: {{results.ttft_p99_ms:.1f}} ms | TPOT P99: {{results.tpot_p99_
       return b;
     }}
 
-    // Silicon Hardware Table
+    // Simulator vs real runs table
+    function fmtErr(v) {{ return (v > 0 ? '+' : '') + v.toFixed(1) + '%'; }}
+    function errColor(v) {{
+      const a = Math.abs(v);
+      return a <= 12 ? 'var(--accent)' : (a <= 30 ? 'var(--amber)' : 'var(--rose)');
+    }}
+
     function renderHardwareTable() {{
       const tbody = document.getElementById('hardware-tbody');
       tbody.innerHTML = '';
@@ -949,12 +970,13 @@ print(f"TTFT P99: {{results.ttft_p99_ms:.1f}} ms | TPOT P99: {{results.tpot_p99_
           <td><strong>${{d.engine}}</strong></td>
           <td style="font-family:var(--font-mono);">${{d.model_size}}</td>
           <td style="font-family:var(--font-mono);">${{d.concurrency}}</td>
+          <td style="font-size:12px; color:var(--text-muted);">${{d.split}}</td>
           <td style="font-family:var(--font-mono);">${{d.ttft_real_ms.toFixed(1)}}</td>
           <td style="font-family:var(--font-mono);">${{d.ttft_sim_ms.toFixed(1)}}</td>
-          <td style="font-family:var(--font-mono); color:var(--accent); font-weight:700;">${{d.ttft_error_pct.toFixed(1)}}%</td>
+          <td style="font-family:var(--font-mono); color:${{errColor(d.ttft_error_pct)}}; font-weight:700;">${{fmtErr(d.ttft_error_pct)}}</td>
           <td style="font-family:var(--font-mono);">${{d.tpot_real_ms.toFixed(1)}}</td>
           <td style="font-family:var(--font-mono);">${{d.tpot_sim_ms.toFixed(1)}}</td>
-          <td style="font-family:var(--font-mono); color:var(--accent); font-weight:700;">${{d.tpot_error_pct.toFixed(1)}}%</td>
+          <td style="font-family:var(--font-mono); color:${{errColor(d.tpot_error_pct)}}; font-weight:700;">${{fmtErr(d.tpot_error_pct)}}</td>
         `;
         tbody.appendChild(tr);
       }});
@@ -1021,7 +1043,7 @@ def main():
     traces_data = json.loads(traces_json_path.read_text(encoding="utf-8"))
 
     print(
-        f"Loaded {len(sched_data)} scheduler rows, {len(hw_data)} silicon points, and {len(traces_data)} traces."
+        f"Loaded {len(sched_data)} scheduler rows, {len(hw_data)} validation rows, and {len(traces_data)} traces."
     )
 
     # 2. Generate HTML
@@ -1043,18 +1065,46 @@ colorTo: blue
 sdk: static
 pinned: false
 license: apache-2.0
-short_description: LLM serving scheduler simulator & HOL blocking visualizer.
+short_description: Discrete-event LLM scheduler simulator & Gantt player.
+tags:
+  - llm-serving
+  - continuous-batching
+  - scheduler
+  - sarathi
+  - chunked-prefill
+  - head-of-line-blocking
+  - discrete-event-simulation
+  - gantt
+datasets:
+  - prajwalpujari16/llm-serving-traces
 ---
 
 # sched-sim ⏱️ LLM Serving Scheduler & Gantt Studio
 
-Interactive discrete-event simulation of LLM serving scheduling policies, Head-of-Line prefill starvation analysis, and empirical silicon validation.
+Interactive discrete-event simulation of LLM serving scheduling policies, Head-of-Line prefill blocking, and a comparison of simulated vs real latency on one laptop GPU (see the dataset card for results and limits).
 
 * **GitHub Repository:** [Prajwal7-2002/sched-sim](https://github.com/Prajwal7-2002/sched-sim)
 * **PyPI:** [`pip install sched-sim`](https://pypi.org/project/sched-sim/)
 * **HF Benchmark Dataset:** [prajwalpujari16/llm-serving-traces](https://huggingface.co/datasets/prajwalpujari16/llm-serving-traces)
 * **Documentation:** [prajwal7-2002.github.io/sched-sim](https://prajwal7-2002.github.io/sched-sim/)
 * **Author:** Prajwal Pujari ([@Prajwal7-2002](https://github.com/Prajwal7-2002))
+
+---
+
+### Citation & Attribution
+
+If you use sched-sim or its dataset, please cite:
+
+```bibtex
+@misc{pujari2026schedsim,
+  author = {Pujari, Prajwal},
+  title = {sched-sim: Discrete-Event Simulator for LLM Serving Schedulers and Batching Policies},
+  year = {2026},
+  publisher = {Hugging Face},
+  howpublished = {\url{https://huggingface.co/spaces/prajwalpujari16/sched-sim}},
+  url = {https://github.com/Prajwal7-2002/sched-sim}
+}
+```
 """
     (space_dir / "README.md").write_text(space_readme, encoding="utf-8")
     print(f"✓ Wrote {space_dir / 'README.md'}")
